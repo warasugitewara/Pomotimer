@@ -1,31 +1,46 @@
 package com.example.pomodoro
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.core.content.ContextCompat
+import com.example.pomodoro.service.TimerService
 import com.example.pomodoro.ui.PomotimerApp
-import com.example.pomodoro.viewmodel.TimerViewModel
 
 class MainActivity : ComponentActivity() {
-    private val viewModel: TimerViewModel by viewModels()
+
+    private val notifPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* ignore */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        requestNotifPermissionIfNeeded()
+
+        // サービス起動（バックグラウンド動作のためにstartする）
+        Intent(this, TimerService::class.java).also { startService(it) }
+
         setContent {
-            val uiState by viewModel.uiState.collectAsState()
-            PomotimerApp(
-                uiState = uiState,
-                onStart = { viewModel.startTimer() },
-                onPause = { viewModel.pauseTimer() },
-                onReset = { viewModel.resetTimer() },
-                onSetWorkDuration = { viewModel.setWorkDuration(it) },
-                onSetBreakDuration = { viewModel.setBreakDuration(it) }
-            )
+            MaterialTheme {
+                Surface { PomotimerApp() }
+            }
+        }
+    }
+
+    private fun requestNotifPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
         }
     }
 }

@@ -1,0 +1,63 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- トマト本体（赤い円） -->
+    <path
+        android:fillColor="#E53935"
+        android:pathData="M54,18 A36,36 0 1,1 54,90 A36,36 0 1,1 54,18 Z"/>
+
+    <!-- ハイライト（光沢） -->
+    <path
+        android:fillColor="#FFCDD2"
+        android:fillAlpha="0.4"
+        android:pathData="M40,26 A20,16 0 0,1 68,28 A20,16 0 0,1 40,26 Z"/>
+
+    <!-- 葉（緑） -->
+    <path
+        android:fillColor="#43A047"
+        android:pathData="M54,18 C50,10 42,8 40,14 C44,12 50,16 54,18 Z"/>
+    <path
+        android:fillColor="#43A047"
+        android:pathData="M54,18 C58,10 66,8 68,14 C64,12 58,16 54,18 Z"/>
+    <path
+        android:fillColor="#43A047"
+        android:pathData="M54,14 L54,20 M54,14 C52,10 54,7 54,7 C54,7 56,10 54,14 Z"/>
+
+    <!-- 時計の文字盤（白） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.9"
+        android:pathData="M54,28 A26,26 0 1,1 54,80 A26,26 0 1,1 54,28 Z"/>
+
+    <!-- 時計の目盛り（4方向） -->
+    <path
+        android:fillColor="#C62828"
+        android:pathData="M54,30 L54,34 M54,74 L54,78 M30,54 L34,54 M74,54 L78,54"
+        android:strokeColor="#C62828"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"/>
+
+    <!-- 短針（時） -->
+    <path
+        android:fillColor="#C62828"
+        android:pathData="M54,54 L54,42"
+        android:strokeColor="#C62828"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"/>
+
+    <!-- 長針（分） -->
+    <path
+        android:fillColor="#C62828"
+        android:pathData="M54,54 L63,54"
+        android:strokeColor="#C62828"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"/>
+
+    <!-- 中心の点 -->
+    <path
+        android:fillColor="#C62828"
+        android:pathData="M54,52 A2,2 0 1,1 54,56 A2,2 0 1,1 54,52 Z"/>
+</vector>

@@ -1,103 +1,40 @@
 package com.example.pomodoro.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.pomodoro.data.AppDatabase
+import com.example.pomodoro.data.SettingsRepository
 import com.example.pomodoro.model.TimerState
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableStateFlow
+import com.example.pomodoro.service.TimerService
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-class TimerViewModel : ViewModel() {
-    private val _uiState = MutableStateFlow(TimerState())
-    val uiState: StateFlow<TimerState> = _uiState.asStateFlow()
+class TimerViewModel(app: Application) : AndroidViewModel(app) {
 
-    private var timerJob: Job? = null
-    private var lastTickTime: Long = 0L
+    val uiState: StateFlow<TimerState> = TimerService.uiState
 
-    fun startTimer() {
-        if (_uiState.value.isRunning) return
+    val workLogs = AppDatabase.getInstance(app).workLogDao().getAllLogs()
 
-        _uiState.update { it.copy(isRunning = true) }
-        lastTickTime = System.currentTimeMillis()
+    val settings = SettingsRepository(app)
 
-        timerJob = viewModelScope.launch {
-            while (isActive && _uiState.value.remainingSeconds > 0) {
-                delay(500L) // Check every 500ms for better precision than 1000ms
-                val currentTime = System.currentTimeMillis()
-                val elapsedSeconds = (currentTime - lastTickTime) / 1000
+    // ───── タイマーアクション（サービスに委譲） ─────
 
-                if (elapsedSeconds >= 1) {
-                    _uiState.update { state ->
-                        val newRemaining = (state.remainingSeconds - elapsedSeconds).coerceAtLeast(0L)
-                        state.copy(remainingSeconds = newRemaining)
-                    }
-                    lastTickTime += elapsedSeconds * 1000
-                }
+    fun startTimer()  = TimerService.startTimer(getApplication())
+    fun pauseTimer()  = TimerService.pauseTimer(getApplication())
+    fun stopTimer()   = TimerService.stopService(getApplication())
+    fun resetTimer()  = TimerService.resetTimer(getApplication())
 
-                if (_uiState.value.remainingSeconds <= 0L) {
-                    onTimerFinished()
-                    break
-                }
-            }
-        }
+    fun setWorkDuration(minutes: Int)  = TimerService.setWorkDuration(getApplication(), minutes)
+    fun setBreakDuration(minutes: Int) = TimerService.setBreakDuration(getApplication(), minutes)
+
+    // ───── 設定（DataStore はコルーチン必須） ─────
+
+    fun setNotificationEnabled(enabled: Boolean) = viewModelScope.launch {
+        settings.setNotificationEnabled(enabled)
     }
 
-    fun pauseTimer() {
-        timerJob?.cancel()
-        _uiState.update { it.copy(isRunning = false) }
-    }
-
-    fun resetTimer() {
-        pauseTimer()
-        _uiState.update { state ->
-            state.copy(
-                remainingSeconds = state.totalSeconds,
-                isRunning = false
-            )
-        }
-    }
-
-    fun setWorkDuration(minutes: Int) {
-        val seconds = minutes * 60L
-        _uiState.update { state ->
-            state.copy(
-                preferredWorkDurationMinutes = minutes,
-                totalSeconds = seconds,
-                remainingSeconds = seconds,
-                isRunning = false,
-                isWorkMode = true
-            )
-        }
-        pauseTimer()
-    }
-
-    fun setBreakDuration(minutes: Int) {
-        _uiState.update { state ->
-            state.copy(preferredBreakDurationMinutes = minutes)
-        }
-    }
-
-    private fun onTimerFinished() {
-        _uiState.update { state ->
-            val wasWorkMode = state.isWorkMode
-            val newCompletedLaps = if (wasWorkMode) state.completedLaps + 1 else state.completedLaps
-            val newTotalWorkSeconds = if (wasWorkMode) state.totalWorkSecondsToday + state.totalSeconds else state.totalWorkSecondsToday
-
-            val nextModeIsWork = !wasWorkMode
-            val nextDurationMinutes = if (nextModeIsWork) state.preferredWorkDurationMinutes else state.preferredBreakDurationMinutes
-            val nextDurationSeconds = nextDurationMinutes * 60L
-
-            state.copy(
-                isRunning = false,
-                completedLaps = newCompletedLaps,
-                totalWorkSecondsToday = newTotalWorkSeconds,
-                isWorkMode = nextModeIsWork,
-                totalSeconds = nextDurationSeconds,
-                remainingSeconds = nextDurationSeconds,
-                currentLap = if (nextModeIsWork) state.currentLap + 1 else state.currentLap
-            )
-        }
+    fun setSoundEnabled(enabled: Boolean) = viewModelScope.launch {
+        settings.setSoundEnabled(enabled)
     }
 }

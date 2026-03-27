@@ -1,105 +1,87 @@
 package com.example.pomodoro.ui
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.pomodoro.model.TimerState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.example.pomodoro.viewmodel.TimerViewModel
+
+sealed class Screen(val route: String, val label: String) {
+    object Timer   : Screen("timer",    "タイマー")
+    object WorkLog : Screen("worklog",  "ログ")
+    object Settings: Screen("settings", "設定")
+}
 
 @Composable
-fun PomotimerApp(
-    uiState: TimerState,
-    onStart: () -> Unit,
-    onPause: () -> Unit,
-    onReset: () -> Unit,
-    onSetWorkDuration: (Int) -> Unit,
-    onSetBreakDuration: (Int) -> Unit
-) {
-    val minutes = uiState.remainingSeconds / 60
-    val seconds = uiState.remainingSeconds % 60
-    val timeText = "%02d:%02d".format(minutes, seconds)
-    val modeText = if (uiState.isWorkMode) "作業中" else "休憩中"
+fun PomotimerApp(vm: TimerViewModel = viewModel()) {
+    val navController = rememberNavController()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
+    val workLogs by vm.workLogs.collectAsStateWithLifecycle(emptyList())
+    val notifEnabled by vm.settings.notificationEnabled.collectAsStateWithLifecycle(true)
+    val soundEnabled by vm.settings.soundEnabled.collectAsStateWithLifecycle(true)
 
-    var workInput by remember { mutableStateOf(uiState.preferredWorkDurationMinutes.toString()) }
-    var breakInput by remember { mutableStateOf(uiState.preferredBreakDurationMinutes.toString()) }
+    val items = listOf(
+        Triple(Screen.Timer,    Icons.Default.Timer,    "タイマー"),
+        Triple(Screen.WorkLog,  Icons.Default.History,  "ログ"),
+        Triple(Screen.Settings, Icons.Default.Settings, "設定"),
+    )
 
-    Surface(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(text = modeText, fontSize = 22.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = timeText, fontSize = 72.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = "ラップ ${uiState.currentLap}  完了 ${uiState.completedLaps}", fontSize = 14.sp)
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                if (uiState.isRunning) {
-                    Button(onClick = onPause) { Text("一時停止") }
-                } else {
-                    Button(onClick = onStart) { Text("スタート") }
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val current = navBackStackEntry?.destination
+                items.forEach { (screen, icon, label) ->
+                    NavigationBarItem(
+                        icon = { Icon(icon, contentDescription = label) },
+                        label = { Text(label) },
+                        selected = current?.hierarchy?.any { it.route == screen.route } == true,
+                        onClick = {
+                            navController.navigate(screen.route) {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
                 }
-                OutlinedButton(onClick = onReset) { Text("リセット") }
             }
-
-            Spacer(modifier = Modifier.height(40.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text("設定", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text("作業時間 (分):")
-                OutlinedTextField(
-                    value = workInput,
-                    onValueChange = { workInput = it },
-                    modifier = Modifier.width(80.dp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true
+        }
+    ) { innerPadding ->
+        NavHost(navController, startDestination = Screen.Timer.route, Modifier.padding(innerPadding)) {
+            composable(Screen.Timer.route) {
+                TimerScreen(
+                    uiState           = uiState,
+                    onStart           = vm::startTimer,
+                    onPause           = vm::pauseTimer,
+                    onReset           = vm::resetTimer,
+                    onSetWorkDuration = vm::setWorkDuration,
+                    onSetBreakDuration= vm::setBreakDuration
                 )
-                Button(onClick = {
-                    workInput.toIntOrNull()?.takeIf { it in 1..120 }?.let(onSetWorkDuration)
-                }) { Text("設定") }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text("休憩時間 (分):")
-                OutlinedTextField(
-                    value = breakInput,
-                    onValueChange = { breakInput = it },
-                    modifier = Modifier.width(80.dp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true
+            composable(Screen.WorkLog.route) {
+                WorkLogScreen(logs = workLogs)
+            }
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    notificationEnabled = notifEnabled,
+                    soundEnabled        = soundEnabled,
+                    onNotifToggle       = vm::setNotificationEnabled,
+                    onSoundToggle       = vm::setSoundEnabled
                 )
-                Button(onClick = {
-                    breakInput.toIntOrNull()?.takeIf { it in 1..60 }?.let(onSetBreakDuration)
-                }) { Text("設定") }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-            val totalWorkMin = uiState.totalWorkSecondsToday / 60
-            Text("本日の作業時間: ${totalWorkMin}分", fontSize = 13.sp, color = MaterialTheme.colorScheme.secondary)
         }
     }
 }
