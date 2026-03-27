@@ -11,6 +11,9 @@ import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.Build
 import android.os.IBinder
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
@@ -32,10 +35,15 @@ import kotlinx.coroutines.launch
 class TimerService : LifecycleService() {
 
     companion object {
-        const val ACTION_START  = "com.example.pomodoro.START"
-        const val ACTION_PAUSE  = "com.example.pomodoro.PAUSE"
-        const val ACTION_STOP   = "com.example.pomodoro.STOP"
-        const val ACTION_RESET  = "com.example.pomodoro.RESET"
+        const val ACTION_START              = "com.example.pomodoro.START"
+        const val ACTION_PAUSE              = "com.example.pomodoro.PAUSE"
+        const val ACTION_STOP               = "com.example.pomodoro.STOP"
+        const val ACTION_RESET              = "com.example.pomodoro.RESET"
+        const val ACTION_STOP_ALARM         = "com.example.pomodoro.STOP_ALARM"
+        const val ACTION_SET_WORK           = "com.example.pomodoro.SET_WORK"
+        const val ACTION_SET_BREAK          = "com.example.pomodoro.SET_BREAK"
+        const val ACTION_SET_LONG_BREAK     = "com.example.pomodoro.SET_LONG_BREAK"
+        const val ACTION_SET_LB_INTERVAL    = "com.example.pomodoro.SET_LB_INTERVAL"
 
         const val CHANNEL_TIMER  = "timer_progress"
         const val CHANNEL_ALERT  = "timer_alert"
@@ -45,20 +53,22 @@ class TimerService : LifecycleService() {
         private val _uiState = MutableStateFlow(TimerState())
         val uiState: StateFlow<TimerState> = _uiState.asStateFlow()
 
-        fun startTimer(ctx: Context)  = ctx.startService(Intent(ctx, TimerService::class.java).apply { action = ACTION_START })
-        fun pauseTimer(ctx: Context)  = ctx.startService(Intent(ctx, TimerService::class.java).apply { action = ACTION_PAUSE })
-        fun stopService(ctx: Context) = ctx.startService(Intent(ctx, TimerService::class.java).apply { action = ACTION_STOP })
-        fun resetTimer(ctx: Context)  = ctx.startService(Intent(ctx, TimerService::class.java).apply { action = ACTION_RESET })
+        fun startTimer(ctx: Context)       = ctx.startService(svc(ctx, ACTION_START))
+        fun pauseTimer(ctx: Context)       = ctx.startService(svc(ctx, ACTION_PAUSE))
+        fun stopService(ctx: Context)      = ctx.startService(svc(ctx, ACTION_STOP))
+        fun resetTimer(ctx: Context)       = ctx.startService(svc(ctx, ACTION_RESET))
+        fun stopAlarm(ctx: Context)        = ctx.startService(svc(ctx, ACTION_STOP_ALARM))
         fun setWorkDuration(ctx: Context, minutes: Int) =
-            ctx.startService(Intent(ctx, TimerService::class.java).apply {
-                action = "com.example.pomodoro.SET_WORK"
-                putExtra("minutes", minutes)
-            })
+            ctx.startService(svc(ctx, ACTION_SET_WORK).putExtra("minutes", minutes))
         fun setBreakDuration(ctx: Context, minutes: Int) =
-            ctx.startService(Intent(ctx, TimerService::class.java).apply {
-                action = "com.example.pomodoro.SET_BREAK"
-                putExtra("minutes", minutes)
-            })
+            ctx.startService(svc(ctx, ACTION_SET_BREAK).putExtra("minutes", minutes))
+        fun setLongBreakDuration(ctx: Context, minutes: Int) =
+            ctx.startService(svc(ctx, ACTION_SET_LONG_BREAK).putExtra("minutes", minutes))
+        fun setLongBreakInterval(ctx: Context, count: Int) =
+            ctx.startService(svc(ctx, ACTION_SET_LB_INTERVAL).putExtra("count", count))
+
+        private fun svc(ctx: Context, action: String) =
+            Intent(ctx, TimerService::class.java).apply { this.action = action }
     }
 
     private lateinit var notifManager: NotificationManager
@@ -68,6 +78,7 @@ class TimerService : LifecycleService() {
     private var lastTickTime = 0L
     private var sessionStartTime = 0L
     private var sessionStartRemaining = 0L
+    private var alarmPlayer: MediaPlayer? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -80,25 +91,24 @@ class TimerService : LifecycleService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         when (intent?.action) {
-            ACTION_START  -> startTimer()
-            ACTION_PAUSE  -> pauseTimer()
-            ACTION_STOP   -> stopAll()
-            ACTION_RESET  -> resetTimer()
-            "com.example.pomodoro.SET_WORK"  -> {
-                val m = intent.getIntExtra("minutes", 25)
-                setWorkDuration(m)
-            }
-            "com.example.pomodoro.SET_BREAK" -> {
-                val m = intent.getIntExtra("minutes", 5)
-                setBreakDuration(m)
-            }
+            ACTION_START           -> startTimer()
+            ACTION_PAUSE           -> pauseTimer()
+            ACTION_STOP            -> stopAll()
+            ACTION_RESET           -> resetTimer()
+            ACTION_STOP_ALARM      -> stopAlarm()
+            ACTION_SET_WORK        -> setWorkDuration(intent.getIntExtra("minutes", 25))
+            ACTION_SET_BREAK       -> setBreakDuration(intent.getIntExtra("minutes", 5))
+            ACTION_SET_LONG_BREAK  -> _uiState.update { it.copy(preferredLongBreakDurationMinutes = intent.getIntExtra("minutes", 15)) }
+            ACTION_SET_LB_INTERVAL -> _uiState.update { it.copy(longBreakInterval = intent.getIntExtra("count", 4)) }
         }
         return START_STICKY
     }
 
-    override fun onBind(intent: Intent): IBinder? {
-        super.onBind(intent)
-        return null
+    override fun onBind(intent: Intent): IBinder? { super.onBind(intent); return null }
+
+    override fun onDestroy() {
+        stopAlarm()
+        super.onDestroy()
     }
 
     // ────────────── Timer control ──────────────
@@ -109,9 +119,7 @@ class TimerService : LifecycleService() {
         sessionStartRemaining = _uiState.value.remainingSeconds
         _uiState.update { it.copy(isRunning = true) }
         lastTickTime = System.currentTimeMillis()
-
         startForeground(NOTIF_ID_TIMER, buildTimerNotification())
-
         timerJob = lifecycleScope.launch {
             while (_uiState.value.remainingSeconds > 0) {
                 delay(500L)
@@ -119,8 +127,7 @@ class TimerService : LifecycleService() {
                 val elapsed = (now - lastTickTime) / 1000
                 if (elapsed >= 1) {
                     _uiState.update { s ->
-                        val newRemaining = (s.remainingSeconds - elapsed).coerceAtLeast(0L)
-                        s.copy(remainingSeconds = newRemaining)
+                        s.copy(remainingSeconds = (s.remainingSeconds - elapsed).coerceAtLeast(0L))
                     }
                     lastTickTime += elapsed * 1000
                     notifManager.notify(NOTIF_ID_TIMER, buildTimerNotification())
@@ -139,6 +146,7 @@ class TimerService : LifecycleService() {
 
     private fun resetTimer() {
         timerJob?.cancel()
+        stopAlarm()
         _uiState.update { s -> s.copy(remainingSeconds = s.totalSeconds, isRunning = false) }
         notifManager.notify(NOTIF_ID_TIMER, buildTimerNotification())
     }
@@ -149,82 +157,102 @@ class TimerService : LifecycleService() {
         _uiState.update { s ->
             s.copy(
                 preferredWorkDurationMinutes = minutes,
-                totalSeconds = secs,
-                remainingSeconds = secs,
-                isRunning = false,
-                isWorkMode = true
+                totalSeconds = secs, remainingSeconds = secs,
+                isRunning = false, isWorkMode = true
             )
         }
         notifManager.notify(NOTIF_ID_TIMER, buildTimerNotification())
     }
 
     private fun setBreakDuration(minutes: Int) {
-        _uiState.update { s -> s.copy(preferredBreakDurationMinutes = minutes) }
+        _uiState.update { it.copy(preferredBreakDurationMinutes = minutes) }
     }
 
     private fun stopAll() {
         timerJob?.cancel()
+        stopAlarm()
         _uiState.value = TimerState()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
+    private fun stopAlarm() {
+        try { alarmPlayer?.let { if (it.isPlaying) it.stop(); it.release() } } catch (_: Exception) {}
+        alarmPlayer = null
+        _uiState.update { it.copy(isAlarmPlaying = false) }
+        notifManager.cancel(NOTIF_ID_ALERT)
+    }
+
+    // ────────────── Timer finished ──────────────
+
     private fun onTimerFinished() {
         val state = _uiState.value
         val wasWork = state.isWorkMode
-        val actual = sessionStartRemaining - state.remainingSeconds
+        val actual  = sessionStartRemaining - state.remainingSeconds
 
-        // 作業ログを保存
         lifecycleScope.launch {
-            db.workLogDao().insert(
-                WorkLog(
-                    sessionType    = if (wasWork) "WORK" else "BREAK",
-                    plannedSeconds = state.totalSeconds,
-                    actualSeconds  = actual,
-                    completed      = true,
-                    lapNumber      = state.currentLap
-                )
-            )
+            db.workLogDao().insert(WorkLog(
+                sessionType    = if (wasWork) "WORK" else if (state.isLongBreak) "LONG_BREAK" else "BREAK",
+                plannedSeconds = state.totalSeconds,
+                actualSeconds  = actual,
+                completed      = true,
+                lapNumber      = state.currentLap
+            ))
         }
 
-        // 次のモードへ切り替え
-        val newWork = !wasWork
-        val nextDurMin = if (newWork) state.preferredWorkDurationMinutes else state.preferredBreakDurationMinutes
-        val nextSecs = nextDurMin * 60L
+        // 次モードを計算
+        val newPomosInCycle = if (wasWork) state.pomodorosInCycle + 1 else state.pomodorosInCycle
+        val takeLongBreak   = wasWork && (newPomosInCycle >= state.longBreakInterval)
+        val nextIsWork      = !wasWork
+        val nextIsLongBreak = !nextIsWork && takeLongBreak
+        val nextPomosInCycle = if (takeLongBreak) 0 else newPomosInCycle
+        val nextDurMin = when {
+            nextIsWork      -> state.preferredWorkDurationMinutes
+            nextIsLongBreak -> state.preferredLongBreakDurationMinutes
+            else            -> state.preferredBreakDurationMinutes
+        }
+
         _uiState.update { s ->
             s.copy(
-                isRunning              = false,
-                completedLaps          = if (wasWork) s.completedLaps + 1 else s.completedLaps,
-                totalWorkSecondsToday  = if (wasWork) s.totalWorkSecondsToday + s.totalSeconds else s.totalWorkSecondsToday,
-                isWorkMode             = newWork,
-                totalSeconds           = nextSecs,
-                remainingSeconds       = nextSecs,
-                currentLap             = if (newWork) s.currentLap + 1 else s.currentLap
+                isRunning             = false,
+                completedLaps         = if (wasWork) s.completedLaps + 1 else s.completedLaps,
+                totalWorkSecondsToday = if (wasWork) s.totalWorkSecondsToday + s.totalSeconds else s.totalWorkSecondsToday,
+                isWorkMode            = nextIsWork,
+                isLongBreak           = nextIsLongBreak,
+                totalSeconds          = nextDurMin * 60L,
+                remainingSeconds      = nextDurMin * 60L,
+                currentLap            = if (nextIsWork) s.currentLap + 1 else s.currentLap,
+                pomodorosInCycle      = nextPomosInCycle
             )
         }
 
         lifecycleScope.launch {
-            val notifEnabled = settings.notificationEnabled.first()
-            val soundEnabled = settings.soundEnabled.first()
+            val notifOn = settings.notificationEnabled.first()
+            val soundOn = settings.soundEnabled.first()
+            val vibOn   = settings.vibrationEnabled.first()
 
-            if (soundEnabled) playAlarmSound()
+            if (soundOn)  playAlarmSound()
+            if (vibOn)    vibrate()
 
-            if (notifEnabled) {
-                val label = if (wasWork) "作業時間が終了しました" else "休憩時間が終了しました"
-                val next  = if (wasWork) "休憩を開始しましょう" else "次の作業を始めましょう"
-                notifManager.notify(
-                    NOTIF_ID_ALERT,
+            if (notifOn) {
+                val label = when {
+                    wasWork && takeLongBreak -> "お疲れ様！長休憩の時間です 🌙"
+                    wasWork                  -> "作業時間終了！休憩しましょう ☕"
+                    else                     -> "休憩終了！作業を再開しましょう 🍅"
+                }
+                notifManager.notify(NOTIF_ID_ALERT,
                     NotificationCompat.Builder(this@TimerService, CHANNEL_ALERT)
                         .setSmallIcon(R.drawable.ic_notification)
                         .setContentTitle(label)
-                        .setContentText(next)
-                        .setAutoCancel(true)
+                        .setContentText("タップして確認")
+                        .setAutoCancel(false)
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
                         .setContentIntent(openAppIntent())
+                        .addAction(android.R.drawable.ic_delete, "アラームを停止",
+                            actionIntent(ACTION_STOP_ALARM))
                         .build()
                 )
             }
-
             notifManager.notify(NOTIF_ID_TIMER, buildTimerNotification())
         }
     }
@@ -232,55 +260,52 @@ class TimerService : LifecycleService() {
     // ────────────── Notification ──────────────
 
     private fun createNotificationChannels() {
-        val timerChannel = NotificationChannel(
-            CHANNEL_TIMER, "タイマー進行", NotificationManager.IMPORTANCE_LOW
-        ).apply { description = "タイマーの残り時間を表示します" }
+        val timerCh = NotificationChannel(CHANNEL_TIMER, "タイマー進行", NotificationManager.IMPORTANCE_LOW)
+            .apply { description = "タイマーの残り時間を表示します" }
 
         val alertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-        val alertChannel = NotificationChannel(
-            CHANNEL_ALERT, "タイマー終了通知", NotificationManager.IMPORTANCE_HIGH
-        ).apply {
-            description = "作業・休憩の終了を通知します"
-            setSound(alertUri, AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build())
-            enableVibration(true)
-        }
+        val alertCh  = NotificationChannel(CHANNEL_ALERT, "タイマー終了通知", NotificationManager.IMPORTANCE_HIGH)
+            .apply {
+                description = "作業・休憩の終了を通知します"
+                setSound(alertUri, AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build())
+                enableVibration(true)
+            }
 
-        notifManager.createNotificationChannel(timerChannel)
-        notifManager.createNotificationChannel(alertChannel)
+        notifManager.createNotificationChannel(timerCh)
+        notifManager.createNotificationChannel(alertCh)
     }
 
     private fun buildTimerNotification(): Notification {
-        val state = _uiState.value
-        val mins  = state.remainingSeconds / 60
-        val secs  = state.remainingSeconds % 60
+        val state    = _uiState.value
+        val mins     = state.remainingSeconds / 60
+        val secs     = state.remainingSeconds % 60
         val timeStr  = "%02d:%02d".format(mins, secs)
-        val modeStr  = if (state.isWorkMode) "🍅 作業中" else "☕ 休憩中"
-        val progress = ((state.totalSeconds - state.remainingSeconds).toFloat() / state.totalSeconds * 100).toInt()
+        val modeStr  = when {
+            state.isWorkMode   -> "🍅 作業中"
+            state.isLongBreak  -> "🌙 長休憩中"
+            else               -> "☕ 休憩中"
+        }
+        val progress = ((state.totalSeconds - state.remainingSeconds).toFloat() /
+                        state.totalSeconds.coerceAtLeast(1L) * 100).toInt()
         val lapStr   = "ラップ ${state.currentLap}  ／  完了 ${state.completedLaps} ポモドーロ"
 
-        val pauseOrStart = if (state.isRunning) {
-            NotificationCompat.Action(android.R.drawable.ic_media_pause, "一時停止",
-                actionIntent(ACTION_PAUSE))
-        } else {
-            NotificationCompat.Action(android.R.drawable.ic_media_play, "スタート",
-                actionIntent(ACTION_START))
-        }
-        val stopAction = NotificationCompat.Action(android.R.drawable.ic_delete, "停止",
-            actionIntent(ACTION_STOP))
+        val pauseOrStart = if (state.isRunning)
+            NotificationCompat.Action(android.R.drawable.ic_media_pause, "一時停止", actionIntent(ACTION_PAUSE))
+        else
+            NotificationCompat.Action(android.R.drawable.ic_media_play, "スタート", actionIntent(ACTION_START))
+        val stopAction = NotificationCompat.Action(android.R.drawable.ic_delete, "停止", actionIntent(ACTION_STOP))
 
         return NotificationCompat.Builder(this, CHANNEL_TIMER)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("$modeStr  $timeStr")
             .setContentText(lapStr)
             .setProgress(100, progress, false)
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText("$timeStr\n$lapStr")
-                    .setBigContentTitle(modeStr)
-            )
+            .setStyle(NotificationCompat.BigTextStyle()
+                .bigText("$timeStr\n$lapStr")
+                .setBigContentTitle(modeStr))
             .addAction(pauseOrStart)
             .addAction(stopAction)
             .setOnlyAlertOnce(true)
@@ -297,35 +322,56 @@ class TimerService : LifecycleService() {
     }
 
     private fun openAppIntent(): PendingIntent {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
+        val intent = Intent(this, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_SINGLE_TOP }
         return PendingIntent.getActivity(this, 0, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
+    // ────────────── Sound & Vibration ──────────────
+
     private fun playAlarmSound() {
+        stopAlarm()
+        _uiState.update { it.copy(isAlarmPlaying = true) }
         try {
             val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            MediaPlayer().apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
+            alarmPlayer = MediaPlayer().apply {
+                setAudioAttributes(AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build())
                 setDataSource(applicationContext, uri)
                 isLooping = false
                 prepare()
                 start()
-                setOnCompletionListener { release() }
+                setOnCompletionListener {
+                    release()
+                    alarmPlayer = null
+                    _uiState.update { it.copy(isAlarmPlaying = false) }
+                    notifManager.cancel(NOTIF_ID_ALERT)
+                }
             }
         } catch (e: Exception) {
-            // フォールバック: システム通知音
             try {
-                val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-                RingtoneManager.getRingtone(applicationContext, uri)?.play()
+                RingtoneManager.getRingtone(applicationContext,
+                    RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))?.play()
             } catch (_: Exception) {}
+            _uiState.update { it.copy(isAlarmPlaying = false) }
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun vibrate() {
+        val pattern = longArrayOf(0, 400, 150, 400, 150, 700)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager)
+                .defaultVibrator
+                .vibrate(VibrationEffect.createWaveform(pattern, -1))
+        } else {
+            val v = getSystemService(VIBRATOR_SERVICE) as Vibrator
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                v.vibrate(VibrationEffect.createWaveform(pattern, -1))
+            else
+                v.vibrate(pattern, -1)
         }
     }
 }

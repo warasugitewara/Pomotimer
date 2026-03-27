@@ -9,11 +9,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.core.content.ContextCompat
 import com.example.pomodoro.service.TimerService
 import com.example.pomodoro.ui.PomotimerApp
+
 
 class MainActivity : ComponentActivity() {
 
@@ -29,9 +28,7 @@ class MainActivity : ComponentActivity() {
         Intent(this, TimerService::class.java).also { startService(it) }
 
         setContent {
-            MaterialTheme {
-                Surface { PomotimerApp() }
-            }
+            PomotimerApp()
         }
     }
 
