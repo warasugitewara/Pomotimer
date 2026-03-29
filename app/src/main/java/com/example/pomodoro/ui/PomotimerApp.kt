@@ -1,5 +1,6 @@
 package com.example.pomodoro.ui
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
@@ -21,9 +22,9 @@ import com.example.pomodoro.ui.theme.PomotimerTheme
 import com.example.pomodoro.viewmodel.TimerViewModel
 
 sealed class Screen(val route: String, val label: String) {
-    object Timer   : Screen("timer",    "タイマー")
-    object WorkLog : Screen("worklog",  "ログ")
-    object Settings: Screen("settings", "設定")
+    object Timer   : Screen("timer",    "Timer")
+    object WorkLog : Screen("worklog",  "Log")
+    object Settings: Screen("settings", "Settings")
 }
 
 @Composable
@@ -37,7 +38,6 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
     val logs         by vm.logsForSelectedDate.collectAsStateWithLifecycle(emptyList())
     val allDates     by vm.availableDates.collectAsStateWithLifecycle(emptyList())
 
-    // テーマ設定
     val appThemeName  by vm.settings.appTheme.collectAsStateWithLifecycle("LIGHT")
     val customBg      by vm.settings.customBgColor.collectAsStateWithLifecycle("#FAFAFA")
     val customText    by vm.settings.customTextColor.collectAsStateWithLifecycle("#212121")
@@ -50,10 +50,10 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
         customText   = customText,
         customAccent = customAccent
     ) {
-        val items = listOf(
-            Triple(Screen.Timer,    Icons.Default.Timer,    "タイマー"),
-            Triple(Screen.WorkLog,  Icons.Default.History,  "ログ"),
-            Triple(Screen.Settings, Icons.Default.Settings, "設定"),
+        val navItems = listOf(
+            Triple(Screen.Timer,    Icons.Default.Timer,    "Timer"),
+            Triple(Screen.WorkLog,  Icons.Default.History,  "Log"),
+            Triple(Screen.Settings, Icons.Default.Settings, "Settings"),
         )
 
         Scaffold(
@@ -61,7 +61,7 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
                 NavigationBar {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val current = navBackStackEntry?.destination
-                    items.forEach { (screen, icon, label) ->
+                    navItems.forEach { (screen, icon, label) ->
                         NavigationBarItem(
                             icon     = { Icon(icon, contentDescription = label) },
                             label    = { Text(label) },
@@ -78,10 +78,16 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
                 }
             }
         ) { innerPadding ->
-            NavHost(navController, startDestination = Screen.Timer.route,
-                Modifier.padding(innerPadding)) {
-
-                composable(Screen.Timer.route) {
+            NavHost(
+                navController = navController,
+                startDestination = Screen.Timer.route,
+                modifier = Modifier.padding(innerPadding)
+            ) {
+                composable(
+                    route = Screen.Timer.route,
+                    enterTransition = { fadeIn() },
+                    exitTransition = { fadeOut() }
+                ) {
                     TimerScreen(
                         uiState                = uiState,
                         onStart                = vm::startTimer,
@@ -95,7 +101,11 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
                     )
                 }
 
-                composable(Screen.WorkLog.route) {
+                composable(
+                    route = Screen.WorkLog.route,
+                    enterTransition = { fadeIn() },
+                    exitTransition = { fadeOut() }
+                ) {
                     WorkLogScreen(
                         selectedDate   = selectedDate,
                         logs           = logs,
@@ -107,7 +117,11 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
                     )
                 }
 
-                composable(Screen.Settings.route) {
+                composable(
+                    route = Screen.Settings.route,
+                    enterTransition = { fadeIn() },
+                    exitTransition = { fadeOut() }
+                ) {
                     SettingsScreen(
                         notificationEnabled  = notifEnabled,
                         soundEnabled         = soundEnabled,
