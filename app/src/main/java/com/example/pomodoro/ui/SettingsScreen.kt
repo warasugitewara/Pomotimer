@@ -1,20 +1,20 @@
 package com.example.pomodoro.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,91 +41,96 @@ fun SettingsScreen(
 ) {
     val scrollState = rememberScrollState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text("設定", fontSize = 20.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 4.dp))
-
-        // ── 通知・アラート ─────────────────────────────
-        SectionHeader("通知・アラート")
-
-        SettingsToggleItem(Icons.Default.Notifications, "プッシュ通知",
-            "作業・休憩の終了時に通知する", notificationEnabled, onNotifToggle)
-        SettingsToggleItem(Icons.AutoMirrored.Filled.VolumeUp, "通知音",
-            "タイマー終了時にアラーム音を鳴らす", soundEnabled, onSoundToggle)
-        SettingsToggleItem(Icons.Default.PhoneAndroid, "バイブレーション",
-            "タイマー終了時に振動する", vibrationEnabled, onVibrationToggle)
-
-        Spacer(Modifier.height(8.dp))
-
-        // ── カラーテーマ ───────────────────────────────
-        SectionHeader("カラーテーマ")
-
-        ThemeSelector(
-            appThemeName      = appThemeName,
-            customBg          = customBg,
-            customText        = customText,
-            customAccent      = customAccent,
-            onThemeChange     = onThemeChange,
-            onCustomBgChange  = onCustomBgChange,
-            onCustomTextChange= onCustomTextChange,
-            onCustomAccentChange = onCustomAccentChange
-        )
-
-        Spacer(Modifier.height(8.dp))
-        HorizontalDivider()
-        Spacer(Modifier.height(4.dp))
-
-        // ── アプリ情報 ─────────────────────────────────
-        SectionHeader("アプリについて")
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Pomotimer", fontWeight = FontWeight.Bold)
-                Text("バージョン 1.2.0", fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("ポモドーロ・テクニックに基づいた集中管理タイマーアプリです。",
-                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("設定", fontWeight = FontWeight.Bold) }
+            )
         }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(bottom = 24.dp)
+        ) {
+            // ── 通知・アラート ─────────────────────────────
+            SectionHeader("通知・アラート")
+            SettingsToggleItem(Icons.Default.Notifications, "プッシュ通知", "セッション終了を通知", notificationEnabled, onNotifToggle)
+            SettingsToggleItem(Icons.AutoMirrored.Filled.VolumeUp, "サウンド", "アラーム音を有効化", soundEnabled, onSoundToggle)
+            SettingsToggleItem(Icons.Default.Vibration, "バイブレーション", "終了時に振動", vibrationEnabled, onVibrationToggle)
 
-        Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
+
+            // ── カラーテーマ ───────────────────────────────
+            SectionHeader("ビジュアル")
+            ThemeSelector(
+                appThemeName = appThemeName,
+                customBg = customBg,
+                customText = customText,
+                customAccent = customAccent,
+                onThemeChange = onThemeChange,
+                onCustomBgChange = onCustomBgChange,
+                onCustomTextChange = onCustomTextChange,
+                onCustomAccentChange = onCustomAccentChange
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            // ── アプリ情報 ─────────────────────────────────
+            SectionHeader("情報")
+            InfoItem(Icons.Default.Info, "バージョン", "1.3.0 (Optimized)")
+            InfoItem(Icons.Default.Code, "開発情報", "Jetpack Compose + Material3")
+
+            Spacer(Modifier.height(32.dp))
+
+            Text(
+                "Pomotimer for Creators",
+                modifier = Modifier.fillMaxWidth().alpha(0.5f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                fontSize = 12.sp
+            )
+        }
     }
 }
 
 @Composable
 private fun SectionHeader(title: String) {
-    Text(title, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+    Text(
+        title,
+        fontSize = 12.sp,
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 8.dp),
+        letterSpacing = 1.sp
+    )
 }
 
 @Composable
 private fun SettingsToggleItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     description: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(end = 16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Medium)
-                Text(description, fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Switch(checked = checked, onCheckedChange = onCheckedChange)
-        }
-    }
+    ListItem(
+        headlineContent = { Text(title, fontWeight = FontWeight.Medium) },
+        supportingContent = { Text(description, fontSize = 12.sp) },
+        leadingContent = { Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+        trailingContent = { Switch(checked = checked, onCheckedChange = onCheckedChange) },
+        modifier = Modifier.clickable { onCheckedChange(!checked) }
+    )
+}
+
+@Composable
+private fun InfoItem(icon: ImageVector, title: String, value: String) {
+    ListItem(
+        headlineContent = { Text(title, fontWeight = FontWeight.Medium) },
+        supportingContent = { Text(value, fontSize = 12.sp) },
+        leadingContent = { Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -141,76 +146,69 @@ private fun ThemeSelector(
     val currentTheme = AppTheme.entries.find { it.name == appThemeName } ?: AppTheme.LIGHT
     var expanded by remember { mutableStateOf(false) }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Palette, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(end = 16.dp))
-                Text("テーマ", fontWeight = FontWeight.Medium)
-            }
-
-            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-                OutlinedTextField(
-                    value = currentTheme.displayName,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("カラーテーマ") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
-                )
-                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    AppTheme.entries.forEach { theme ->
-                        DropdownMenuItem(
-                            text = { Text(theme.displayName) },
-                            onClick = { onThemeChange(theme.name); expanded = false }
-                        )
+    Column {
+        ListItem(
+            headlineContent = { Text("テーマ選択", fontWeight = FontWeight.Medium) },
+            supportingContent = { Text(currentTheme.displayName) },
+            leadingContent = { Icon(Icons.Default.Palette, null) },
+            trailingContent = {
+                Box {
+                    IconButton(onClick = { expanded = true }) { Icon(Icons.Default.ArrowDropDown, null) }
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        AppTheme.entries.forEach { theme ->
+                            DropdownMenuItem(
+                                text = { Text(theme.displayName) },
+                                onClick = { onThemeChange(theme.name); expanded = false }
+                            )
+                        }
                     }
                 }
             }
+        )
 
-            // テーマプレビュー（色のサンプル行）
-            ThemePreviewBar(currentTheme, customBg, customText, customAccent)
+        Row(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ThemeColorCircle(currentTheme, customBg, customText, customAccent)
+        }
 
-            // カスタムテーマの色設定
-            if (currentTheme == AppTheme.CUSTOM) {
-                HorizontalDivider()
-                Text("カスタムカラー (例: #FF5722)",
-                    fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                ColorCodeInput("背景色",      customBg,     onCustomBgChange)
-                ColorCodeInput("テキスト色",  customText,   onCustomTextChange)
-                ColorCodeInput("アクセント色", customAccent, onCustomAccentChange)
+        if (currentTheme == AppTheme.CUSTOM) {
+            Card(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ColorCodeInput("背景色", customBg, onCustomBgChange)
+                    ColorCodeInput("テキスト", customText, onCustomTextChange)
+                    ColorCodeInput("アクセント", customAccent, onCustomAccentChange)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ThemePreviewBar(
+private fun ThemeColorCircle(
     theme: AppTheme, customBg: String, customText: String, customAccent: String
 ) {
     val samples: List<Color> = when (theme) {
-        AppTheme.LIGHT           -> listOf(Color(0xFFFAFAFA), Color(0xFF212121), Color(0xFFD32F2F), Color(0xFF388E3C))
-        AppTheme.DARK            -> listOf(Color(0xFF121212), Color(0xFFEEEEEE), Color(0xFFEF9A9A), Color(0xFF81C784))
-        AppTheme.SOLARIZED_LIGHT -> listOf(Color(0xFFFDF6E3), Color(0xFF657B83), Color(0xFF268BD2), Color(0xFF2AA198))
-        AppTheme.SOLARIZED_DARK  -> listOf(Color(0xFF002B36), Color(0xFF839496), Color(0xFF268BD2), Color(0xFF2AA198))
-        AppTheme.MONOKAI         -> listOf(Color(0xFF272822), Color(0xFFF8F8F2), Color(0xFFA6E22E), Color(0xFFFD971F))
-        AppTheme.NORD            -> listOf(Color(0xFF2E3440), Color(0xFFECEFF4), Color(0xFF88C0D0), Color(0xFFBF616A))
+        AppTheme.LIGHT           -> listOf(Color(0xFFFAFAFA), Color(0xFF212121), Color(0xFFD32F2F))
+        AppTheme.DARK            -> listOf(Color(0xFF121212), Color(0xFFEEEEEE), Color(0xFFEF9A9A))
+        AppTheme.SOLARIZED_LIGHT -> listOf(Color(0xFFFDF6E3), Color(0xFF657B83), Color(0xFF268BD2))
+        AppTheme.SOLARIZED_DARK  -> listOf(Color(0xFF002B36), Color(0xFF839496), Color(0xFF268BD2))
+        AppTheme.MONOKAI         -> listOf(Color(0xFF272822), Color(0xFFF8F8F2), Color(0xFFA6E22E))
+        AppTheme.NORD            -> listOf(Color(0xFF2E3440), Color(0xFFECEFF4), Color(0xFF88C0D0))
         AppTheme.CUSTOM          -> listOf(
             parseHexColor(customBg, Color.White),
             parseHexColor(customText, Color.Black),
-            parseHexColor(customAccent, Color(0xFFD32F2F)),
-            Color.Gray
+            parseHexColor(customAccent, Color(0xFFD32F2F))
         )
     }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         samples.forEach { color ->
-            Box(Modifier.size(32.dp).background(color, CircleShape))
+            Surface(modifier = Modifier.size(24.dp), color = color, shape = CircleShape, border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))) {}
         }
-        Spacer(Modifier.weight(1f))
-        Text("背景・テキスト・アクセント", fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.align(Alignment.CenterVertically))
     }
 }
 
@@ -220,18 +218,19 @@ private fun ColorCodeInput(label: String, value: String, onApply: (String) -> Un
     val isValid = draft.matches(Regex("#[0-9A-Fa-f]{6}"))
     val previewColor = if (isValid) parseHexColor(draft, Color.Gray) else Color.Gray
 
-    Row(verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth()) {
-        Box(Modifier.size(24.dp).background(previewColor, CircleShape))
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Surface(modifier = Modifier.size(32.dp), color = previewColor, shape = CircleShape, border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))) {}
         OutlinedTextField(
             value = draft,
             onValueChange = { draft = it; if (it.matches(Regex("#[0-9A-Fa-f]{6}"))) onApply(it) },
-            label = { Text(label, fontSize = 11.sp) },
+            label = { Text(label) },
             placeholder = { Text("#RRGGBB") },
             isError = draft.isNotEmpty() && !isValid,
             singleLine = true,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            textStyle = MaterialTheme.typography.bodySmall
         )
     }
 }
+
+private fun Modifier.alpha(alpha: Float) = this.then(androidx.compose.ui.draw.alpha(alpha))
