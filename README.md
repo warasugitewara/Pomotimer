@@ -95,6 +95,7 @@ cd Pomotimer
 ```
 
 ビルドには Android SDK (API 36) と JDK 17 以上が必要です。
+※ 私は開発にGraalVM25をしようしているのでそちらが一番安定するかもしれません
 
 ---
 
