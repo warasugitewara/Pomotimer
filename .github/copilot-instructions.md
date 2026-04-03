@@ -21,6 +21,17 @@
    - If you are uncertain about something (e.g., an Android API behavior, a library version, a Gradle option), **ask the user to provide a source** (URL, official docs page, or reference name) rather than guessing.
    - When referencing external information, prefer the official documentation (developer.android.com, kotlinlang.org, etc.) and state where the information comes from.
 
+5. **Git commit authorship**:
+   - All commits must have the following as the primary author:
+     - name: `warasugitewara`
+     - email: (see local git config — do not hardcode email in this file)
+   - When using `Co-authored-by` trailers (e.g., for Copilot), the main author line must still be `warasugitewara`.
+   - Before committing, verify git config with `git config user.name` and `git config user.email`. If not set correctly, run:
+     ```bash
+     git config user.name "warasugitewara"
+     git config user.email "<email from local config>"
+     ```
+
 ### `.copilot-local.md` format (maintain this structure)
 ```markdown
 # Pomotimer — Local Session Memo
