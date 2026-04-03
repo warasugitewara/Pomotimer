@@ -13,6 +13,13 @@
    - Any important technical decisions made
 
 3. **Never commit `.copilot-local.md` to Git** — it is listed in `.gitignore` and is for local state only.
+   - When starting work in a **different repository**, always check that `.copilot-local.md` is listed in that repo's `.gitignore`. If it is not, add it before creating the file.
+
+4. **Anti-hallucination rule (strictly enforce)**:
+   - Only state facts that are grounded in actual source code, documentation, or information explicitly provided in this session.
+   - Do **not** invent API names, library versions, behavior, or configuration details from memory alone.
+   - If you are uncertain about something (e.g., an Android API behavior, a library version, a Gradle option), **ask the user to provide a source** (URL, official docs page, or reference name) rather than guessing.
+   - When referencing external information, prefer the official documentation (developer.android.com, kotlinlang.org, etc.) and state where the information comes from.
 
 ### `.copilot-local.md` format (maintain this structure)
 ```markdown
