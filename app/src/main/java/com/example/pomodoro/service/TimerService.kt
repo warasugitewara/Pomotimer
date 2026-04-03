@@ -261,7 +261,10 @@ class TimerService : LifecycleService() {
 
     private fun createNotificationChannels() {
         val timerCh = NotificationChannel(CHANNEL_TIMER, "タイマー進行", NotificationManager.IMPORTANCE_LOW)
-            .apply { description = "タイマーの残り時間を表示します" }
+            .apply {
+                description = "タイマーの残り時間を表示します"
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            }
 
         val alertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
         val alertCh  = NotificationChannel(CHANNEL_ALERT, "タイマー終了通知", NotificationManager.IMPORTANCE_HIGH)
@@ -311,6 +314,7 @@ class TimerService : LifecycleService() {
             .setOnlyAlertOnce(true)
             .setOngoing(true)
             .setSilent(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(openAppIntent())
             .build()
     }

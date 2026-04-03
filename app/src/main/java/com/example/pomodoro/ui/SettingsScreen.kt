@@ -13,8 +13,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -80,8 +82,14 @@ fun SettingsScreen(
 
             // ── アプリ情報 ─────────────────────────────────
             SectionHeader("情報")
-            InfoItem(Icons.Default.Info, "バージョン", "1.3.0 (Optimized)")
+            InfoItem(Icons.Default.Info, "バージョン", "1.3.0")
             InfoItem(Icons.Default.Code, "開発情報", "Jetpack Compose + Material3")
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── クレジット ─────────────────────────────────
+            SectionHeader("クレジット")
+            CreditItem(Icons.Default.Person, "作者", "github.com/warasugitewara", "https://github.com/warasugitewara")
 
             Spacer(Modifier.height(32.dp))
 
@@ -130,6 +138,19 @@ private fun InfoItem(icon: ImageVector, title: String, value: String) {
         headlineContent = { Text(title, fontWeight = FontWeight.Medium) },
         supportingContent = { Text(value, fontSize = 12.sp) },
         leadingContent = { Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+    )
+}
+
+@Composable
+private fun CreditItem(icon: ImageVector, title: String, displayUrl: String, url: String) {
+    val uriHandler = LocalUriHandler.current
+    ListItem(
+        headlineContent = { Text(title, fontWeight = FontWeight.Medium) },
+        supportingContent = {
+            Text(displayUrl, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+        },
+        leadingContent = { Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+        modifier = Modifier.clickable { uriHandler.openUri(url) }
     )
 }
 
@@ -233,4 +254,3 @@ private fun ColorCodeInput(label: String, value: String, onApply: (String) -> Un
     }
 }
 
-private fun Modifier.alpha(alpha: Float) = this.then(androidx.compose.ui.draw.alpha(alpha))

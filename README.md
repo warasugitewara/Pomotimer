@@ -77,6 +77,7 @@
 
 | バージョン | 主な変更 |
 |-----------|----------|
+| [v1.3.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.3.0) | ロック画面への通知表示・設定画面にクレジット追加 |
 | [v1.2.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.2.0) | 長休憩・バイブ・6 テーマ＋カスタム・アラーム停止・作業ログ管理・ドット絵アイコン |
 | [v1.1.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.1.0) | バックグラウンド動作・通知・作業ログ・設定画面 |
 | [v1.0.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.0.0) | 初回リリース |
