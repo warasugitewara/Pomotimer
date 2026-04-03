@@ -82,7 +82,7 @@ fun SettingsScreen(
 
             // ── アプリ情報 ─────────────────────────────────
             SectionHeader("情報")
-            InfoItem(Icons.Default.Info, "バージョン", "1.3.0")
+            InfoItem(Icons.Default.Info, "バージョン", "1.3.1")
             InfoItem(Icons.Default.Code, "開発情報", "Jetpack Compose + Material3")
 
             Spacer(Modifier.height(16.dp))
