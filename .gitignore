@@ -10,3 +10,6 @@ local.properties
 
 # MacOS
 .DS_Store
+
+# Copilot ローカルメモ（コミット不要）
+.copilot-local.md
