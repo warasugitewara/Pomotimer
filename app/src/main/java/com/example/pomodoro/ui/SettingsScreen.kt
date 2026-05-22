@@ -89,7 +89,7 @@ fun SettingsScreen(
 
             // ── クレジット ─────────────────────────────────
             SectionHeader("クレジット")
-            CreditItem(Icons.Default.Person, "作者", "github.com/warasugitewara", "https://github.com/warasugitewara")
+            CreditItem(Icons.Default.Person, "作者", "pomotimer.warasugi.com", "https://pomotimer.warasugi.com")
 
             Spacer(Modifier.height(32.dp))
 
@@ -220,6 +220,9 @@ private fun ThemeColorCircle(
         AppTheme.SOLARIZED_DARK  -> listOf(Color(0xFF002B36), Color(0xFF839496), Color(0xFF268BD2))
         AppTheme.MONOKAI         -> listOf(Color(0xFF272822), Color(0xFFF8F8F2), Color(0xFFA6E22E))
         AppTheme.NORD            -> listOf(Color(0xFF2E3440), Color(0xFFECEFF4), Color(0xFF88C0D0))
+        AppTheme.DISCORD         -> listOf(Color(0xFF313338), Color(0xFFDBDEE1), Color(0xFF5865F2))
+        AppTheme.BTOP            -> listOf(Color(0xFF0D0D0D), Color(0xFFCCCCCC), Color(0xFF00FF41))
+        AppTheme.CATPPUCCIN      -> listOf(Color(0xFF1E1E2E), Color(0xFFCDD6F4), Color(0xFFCBA6F7))
         AppTheme.CUSTOM          -> listOf(
             parseHexColor(customBg, Color.White),
             parseHexColor(customText, Color.Black),

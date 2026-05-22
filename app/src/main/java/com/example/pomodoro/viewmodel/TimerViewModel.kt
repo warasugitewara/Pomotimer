@@ -3,10 +3,13 @@ package com.example.pomodoro.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.pomodoro.BuildConfig
 import com.example.pomodoro.data.AppDatabase
 import com.example.pomodoro.data.SettingsRepository
 import com.example.pomodoro.model.TimerState
 import com.example.pomodoro.service.TimerService
+import com.example.pomodoro.util.fetchLatestVersion
+import com.example.pomodoro.util.isNewerVersion
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +25,21 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
     private val dao = AppDatabase.getInstance(app).workLogDao()
 
     val uiState: StateFlow<TimerState> = TimerService.uiState
+
+    // ───── アップデート通知 ─────
+
+    private val _updateAvailable = MutableStateFlow<String?>(null)
+    /** 新バージョンがある場合はバージョン文字列（例: "1.4.0"）、なければ null */
+    val updateAvailable: StateFlow<String?> = _updateAvailable.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            val latest = fetchLatestVersion()
+            if (latest != null && isNewerVersion(latest, BuildConfig.VERSION_NAME)) {
+                _updateAvailable.value = latest
+            }
+        }
+    }
 
     // ───── 作業ログ（日付ナビゲーション） ─────
 

@@ -5,10 +5,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -44,12 +46,35 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
     val customAccent  by vm.settings.customAccentColor.collectAsStateWithLifecycle("#E53935")
     val appTheme = AppTheme.entries.find { it.name == appThemeName } ?: AppTheme.LIGHT
 
+    val updateAvailable by vm.updateAvailable.collectAsStateWithLifecycle(null)
+    var updateDismissed by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
+
     PomotimerTheme(
         theme        = appTheme,
         customBg     = customBg,
         customText   = customText,
         customAccent = customAccent
     ) {
+        // ── アップデート通知ダイアログ ────────────────────────
+        if (updateAvailable != null && !updateDismissed) {
+            AlertDialog(
+                onDismissRequest = { updateDismissed = true },
+                icon = { Icon(Icons.Default.SystemUpdateAlt, null) },
+                title = { Text("アップデートあり") },
+                text  = { Text("新バージョン v$updateAvailable が公開されています。") },
+                confirmButton = {
+                    Button(onClick = {
+                        uriHandler.openUri("https://github.com/warasugitewara/Pomotimer/releases/latest")
+                        updateDismissed = true
+                    }) { Text("ダウンロード") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { updateDismissed = true }) { Text("後で") }
+                }
+            )
+        }
+
         val navItems = listOf(
             Triple(Screen.Timer,    Icons.Default.Timer,    "Timer"),
             Triple(Screen.WorkLog,  Icons.Default.History,  "Log"),

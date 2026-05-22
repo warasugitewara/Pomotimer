@@ -11,6 +11,9 @@ enum class AppTheme(val displayName: String) {
     SOLARIZED_DARK("Solarized ダーク"),
     MONOKAI("Monokai"),
     NORD("Nord"),
+    DISCORD("Discord"),
+    BTOP("btop"),
+    CATPPUCCIN("Catppuccin"),
     CUSTOM("カスタム")
 }
 
@@ -124,6 +127,66 @@ private val NordScheme = darkColorScheme(
     outline            = Color(0xFF4C566A),
 )
 
+// ── Discord ───────────────────────────────────────────
+// Discord Dark Mode: Blurple (#5865F2) on dark charcoal
+private val DiscordScheme = darkColorScheme(
+    primary            = Color(0xFF5865F2),
+    onPrimary          = Color(0xFFFFFFFF),
+    primaryContainer   = Color(0xFF4752C4),
+    onPrimaryContainer = Color(0xFFDBDEE1),
+    secondary          = Color(0xFF57F287),
+    onSecondary        = Color(0xFF23272A),
+    tertiary           = Color(0xFFFEE75C),
+    background         = Color(0xFF313338),
+    onBackground       = Color(0xFFDBDEE1),
+    surface            = Color(0xFF2B2D31),
+    onSurface          = Color(0xFFDBDEE1),
+    surfaceVariant     = Color(0xFF1E1F22),
+    onSurfaceVariant   = Color(0xFF949BA4),
+    error              = Color(0xFFED4245),
+    outline            = Color(0xFF4E5058),
+)
+
+// ── btop ──────────────────────────────────────────────
+// btop terminal monitor vibe: near-black with neon green / red accents
+private val BtopScheme = darkColorScheme(
+    primary            = Color(0xFF00FF41),
+    onPrimary          = Color(0xFF0D0D0D),
+    primaryContainer   = Color(0xFF003B0D),
+    onPrimaryContainer = Color(0xFF00FF41),
+    secondary          = Color(0xFF39C5CF),
+    onSecondary        = Color(0xFF0D0D0D),
+    tertiary           = Color(0xFFFF6E27),
+    background         = Color(0xFF0D0D0D),
+    onBackground       = Color(0xFFCCCCCC),
+    surface            = Color(0xFF1A1A1A),
+    onSurface          = Color(0xFFCCCCCC),
+    surfaceVariant     = Color(0xFF262626),
+    onSurfaceVariant   = Color(0xFF888888),
+    error              = Color(0xFFFF3333),
+    outline            = Color(0xFF00FF41),
+)
+
+// ── Catppuccin Mocha ──────────────────────────────────
+// Catppuccin Mocha: pastel tones on deep purple-dark background
+private val CatppuccinScheme = darkColorScheme(
+    primary            = Color(0xFFCBA6F7),
+    onPrimary          = Color(0xFF1E1E2E),
+    primaryContainer   = Color(0xFF45475A),
+    onPrimaryContainer = Color(0xFFCBA6F7),
+    secondary          = Color(0xFF74C7EC),
+    onSecondary        = Color(0xFF1E1E2E),
+    tertiary           = Color(0xFFA6E3A1),
+    background         = Color(0xFF1E1E2E),
+    onBackground       = Color(0xFFCDD6F4),
+    surface            = Color(0xFF313244),
+    onSurface          = Color(0xFFCDD6F4),
+    surfaceVariant     = Color(0xFF45475A),
+    onSurfaceVariant   = Color(0xFFBAC2DE),
+    error              = Color(0xFFF38BA8),
+    outline            = Color(0xFF585B70),
+)
+
 // ── Custom ────────────────────────────────────────────
 fun parseHexColor(hex: String, default: Color = Color.Gray): Color = try {
     val clean = hex.trim().let { if (it.startsWith("#")) it else "#$it" }
@@ -171,6 +234,9 @@ fun PomotimerTheme(
         AppTheme.SOLARIZED_DARK  -> SolarizedDarkScheme
         AppTheme.MONOKAI         -> MonokaiScheme
         AppTheme.NORD            -> NordScheme
+        AppTheme.DISCORD         -> DiscordScheme
+        AppTheme.BTOP            -> BtopScheme
+        AppTheme.CATPPUCCIN      -> CatppuccinScheme
         AppTheme.CUSTOM          -> buildCustomScheme(customBg, customText, customAccent)
     }
     MaterialTheme(colorScheme = scheme, content = content)
