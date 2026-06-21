@@ -239,5 +239,5 @@ fun PomotimerTheme(
         AppTheme.CATPPUCCIN      -> CatppuccinScheme
         AppTheme.CUSTOM          -> buildCustomScheme(customBg, customText, customAccent)
     }
-    MaterialTheme(colorScheme = scheme, content = content)
+    MaterialTheme(colorScheme = scheme, typography = AppTypography, content = content)
 }

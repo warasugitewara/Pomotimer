@@ -1,8 +1,7 @@
 package com.example.pomodoro.ui
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,11 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pomodoro.model.TimerState
+import com.example.pomodoro.ui.theme.TimerDigitStyle
 
 @Composable
 fun TimerScreen(
@@ -30,15 +28,16 @@ fun TimerScreen(
     onPause: () -> Unit,
     onReset: () -> Unit,
     onStopAlarm: () -> Unit,
+    onOpenStats: () -> Unit,
     onSetWorkDuration: (Int) -> Unit,
     onSetBreakDuration: (Int) -> Unit,
     onSetLongBreakDuration: (Int) -> Unit,
     onSetLongBreakInterval: (Int) -> Unit
 ) {
     val (modeText, modeColor) = when {
-        uiState.isWorkMode  -> "作業中"    to MaterialTheme.colorScheme.primary
-        uiState.isLongBreak -> "長休憩中"  to MaterialTheme.colorScheme.tertiary
-        else                -> "休憩中"    to MaterialTheme.colorScheme.secondary
+        uiState.isWorkMode  -> "FOCUS"  to MaterialTheme.colorScheme.primary
+        uiState.isLongBreak -> "LONG BREAK" to MaterialTheme.colorScheme.tertiary
+        else                -> "BREAK"  to MaterialTheme.colorScheme.secondary
     }
 
     Column(
@@ -48,7 +47,7 @@ fun TimerScreen(
             .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // アラームバナー (洗練されたデザイン)
+        // ── アラームバナー ────────────────────────────────
         AnimatedVisibility(
             visible = uiState.isAlarmPlaying,
             enter = fadeIn() + expandVertically(),
@@ -65,7 +64,7 @@ fun TimerScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    Text("タイマー終了", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("タイマー終了", style = MaterialTheme.typography.titleSmall)
                     TextButton(onClick = onStopAlarm) {
                         Text("アラームを停止", color = MaterialTheme.colorScheme.error)
                     }
@@ -75,69 +74,28 @@ fun TimerScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        // 円形タイマー
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(280.dp)) {
-            val progress = (uiState.remainingSeconds.toFloat() / uiState.totalSeconds.coerceAtLeast(1L))
-            val animatedProgress by animateFloatAsState(
-                targetValue = progress,
-                animationSpec = tween(durationMillis = 1000),
-                label = "TimerProgress"
-            )
+        // ── 円形タイマー ──────────────────────────────────
+        TimerRing(uiState = uiState, modeText = modeText, modeColor = modeColor)
 
-            // 背景の円
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawCircle(
-                    color = modeColor.copy(alpha = 0.1f),
-                    style = Stroke(width = 12.dp.toPx())
-                )
-            }
+        Spacer(Modifier.height(24.dp))
 
-            // 進捗の円
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawArc(
-                    color = modeColor,
-                    startAngle = -90f,
-                    sweepAngle = 360f * animatedProgress,
-                    useCenter = false,
-                    style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round)
-                )
-            }
+        // ── ポモドーロ・サイクル表示 ──────────────────────
+        CycleIndicator(
+            interval = uiState.longBreakInterval,
+            done = uiState.pomodorosInCycle,
+            isWorkMode = uiState.isWorkMode,
+            activeColor = MaterialTheme.colorScheme.primary
+        )
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = modeText,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = modeColor.copy(alpha = 0.8f)
-                )
-                val minutes = uiState.remainingSeconds / 60
-                val seconds = uiState.remainingSeconds % 60
-                Text(
-                    text = "%02d:%02d".format(minutes, seconds),
-                    fontSize = 64.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-2).sp
-                )
-                Text(
-                    text = "Laps ${uiState.currentLap} / ${uiState.completedLaps}",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        Spacer(Modifier.height(40.dp))
 
-        Spacer(Modifier.height(48.dp))
-
-        // コントロールボタン
+        // ── コントロールボタン ────────────────────────────
         Row(
             horizontalArrangement = Arrangement.spacedBy(24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = onReset,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(Icons.Default.Refresh, contentDescription = "Reset", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            IconButton(onClick = onReset, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Default.Refresh, contentDescription = "リセット", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             LargeFloatingActionButton(
@@ -148,23 +106,19 @@ fun TimerScreen(
             ) {
                 Icon(
                     imageVector = if (uiState.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (uiState.isRunning) "Pause" else "Start",
+                    contentDescription = if (uiState.isRunning) "一時停止" else "開始",
                     modifier = Modifier.size(36.dp)
                 )
             }
 
-            // 統計などのショートカット用（将来用）
-            IconButton(
-                onClick = { /* TODO: Open Quick Stats */ },
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(Icons.Default.BarChart, contentDescription = "Stats", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            IconButton(onClick = onOpenStats, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Default.BarChart, contentDescription = "統計を見る", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
         Spacer(Modifier.height(40.dp))
 
-        // クイック設定 (整理されたデザイン)
+        // ── クイック設定 ──────────────────────────────────
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
@@ -175,9 +129,9 @@ fun TimerScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("クイック設定", fontWeight = FontWeight.Bold)
+                    Text("クイック設定", style = MaterialTheme.typography.titleSmall)
                 }
 
                 QuickDurationSlider(
@@ -187,7 +141,6 @@ fun TimerScreen(
                     color = MaterialTheme.colorScheme.primary,
                     range = 5f..60f
                 )
-
                 QuickDurationSlider(
                     label = "休憩",
                     value = uiState.preferredBreakDurationMinutes,
@@ -199,6 +152,95 @@ fun TimerScreen(
         }
 
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun TimerRing(uiState: TimerState, modeText: String, modeColor: Color) {
+    val progress = (uiState.remainingSeconds.toFloat() / uiState.totalSeconds.coerceAtLeast(1L))
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
+        label = "TimerProgress"
+    )
+
+    // 実行中だけリングがわずかに「呼吸」する（控えめ・reduce-motion配慮）
+    val breathe = rememberInfiniteTransition(label = "breathe")
+    val pulseAlpha by if (uiState.isRunning) {
+        breathe.animateFloat(
+            initialValue = 0.85f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1800, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "pulseAlpha"
+        )
+    } else {
+        remember { mutableStateOf(1f) }
+    }
+
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(288.dp)) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            // トラック
+            drawCircle(color = modeColor.copy(alpha = 0.10f), style = Stroke(width = 14.dp.toPx()))
+            // 進捗
+            drawArc(
+                color = modeColor.copy(alpha = pulseAlpha),
+                startAngle = -90f,
+                sweepAngle = 360f * animatedProgress,
+                useCenter = false,
+                style = Stroke(width = 14.dp.toPx(), cap = StrokeCap.Round)
+            )
+        }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = modeText,
+                style = MaterialTheme.typography.labelLarge,
+                color = modeColor,
+                letterSpacing = 3.sp
+            )
+            Spacer(Modifier.height(4.dp))
+            val minutes = uiState.remainingSeconds / 60
+            val seconds = uiState.remainingSeconds % 60
+            Text(
+                text = "%02d:%02d".format(minutes, seconds),
+                style = TimerDigitStyle,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "LAP ${uiState.currentLap}  ·  ${uiState.completedLaps} done",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 1.sp
+            )
+        }
+    }
+}
+
+/**
+ * 長休憩インターバルに対する現在サイクルの進捗をドット列で示す。
+ * 塗り＝完了済みポモドーロ、リング＝これからのポモドーロ。
+ */
+@Composable
+private fun CycleIndicator(interval: Int, done: Int, isWorkMode: Boolean, activeColor: Color) {
+    if (interval <= 1) return
+    val count = interval.coerceIn(1, 12)
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        repeat(count) { i ->
+            val filled = i < done
+            // 作業中で次に進むドットを強調
+            val isCurrent = isWorkMode && i == done
+            val size = if (isCurrent) 12.dp else 9.dp
+            val color = when {
+                filled    -> activeColor
+                isCurrent -> activeColor.copy(alpha = 0.55f)
+                else      -> activeColor.copy(alpha = 0.18f)
+            }
+            Surface(modifier = Modifier.size(size), color = color, shape = CircleShape) {}
+        }
     }
 }
 
@@ -216,8 +258,13 @@ fun QuickDurationSlider(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Text("${value}分", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = color)
+            Text(label, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "${value}min",
+                style = MaterialTheme.typography.labelLarge,
+                fontFamily = com.example.pomodoro.ui.theme.JetBrainsMono,
+                color = color
+            )
         }
         Slider(
             value = value.toFloat(),

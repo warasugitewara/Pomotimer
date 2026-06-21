@@ -8,15 +8,18 @@ import com.example.pomodoro.data.AppDatabase
 import com.example.pomodoro.data.SettingsRepository
 import com.example.pomodoro.model.TimerState
 import com.example.pomodoro.service.TimerService
-import com.example.pomodoro.util.fetchLatestVersion
+import com.example.pomodoro.util.UpdateInfo
+import com.example.pomodoro.util.fetchLatestRelease
 import com.example.pomodoro.util.isNewerVersion
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -28,15 +31,15 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
 
     // ───── アップデート通知 ─────
 
-    private val _updateAvailable = MutableStateFlow<String?>(null)
-    /** 新バージョンがある場合はバージョン文字列（例: "1.4.0"）、なければ null */
-    val updateAvailable: StateFlow<String?> = _updateAvailable.asStateFlow()
+    private val _updateInfo = MutableStateFlow<UpdateInfo?>(null)
+    /** 新バージョンがある場合はリリース情報、なければ null。 */
+    val updateInfo: StateFlow<UpdateInfo?> = _updateInfo.asStateFlow()
 
     init {
         viewModelScope.launch {
-            val latest = fetchLatestVersion()
-            if (latest != null && isNewerVersion(latest, BuildConfig.VERSION_NAME)) {
-                _updateAvailable.value = latest
+            val latest = fetchLatestRelease()
+            if (latest != null && isNewerVersion(latest.version, BuildConfig.VERSION_NAME)) {
+                _updateInfo.value = latest
             }
         }
     }
@@ -58,6 +61,51 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun todayDateKey(): String =
         SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+    // ───── 統計・グラフ ─────
+
+    /** グラフの表示期間（日数）。7 または 30。 */
+    private val _statsRangeDays = MutableStateFlow(7)
+    val statsRangeDays: StateFlow<Int> = _statsRangeDays.asStateFlow()
+    fun setStatsRange(days: Int) { _statsRangeDays.value = days }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val dailyStats = _statsRangeDays.flatMapLatest { days ->
+        dao.getDailyStatsSince(startMillisDaysAgo(days))
+    }
+
+    val totalPomodoros   = dao.getTotalPomodoros()
+    val totalWorkSeconds = dao.getTotalWorkSeconds()
+
+    /** 今日（または昨日）から連続でポモドーロを記録した日数。 */
+    val currentStreak = dao.getPomodoroDates().map { dates -> computeStreak(dates) }
+
+    /** [days] 日前の0時0分の epoch ミリ秒。 */
+    private fun startMillisDaysAgo(days: Int): Long {
+        val cal = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_YEAR, -(days - 1))
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
+        return cal.timeInMillis
+    }
+
+    /** "yyyy-MM-dd" 降順リストから連続記録日数を求める。 */
+    private fun computeStreak(datesDesc: List<String>): Int {
+        if (datesDesc.isEmpty()) return 0
+        val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val set = datesDesc.toHashSet()
+        val cal = Calendar.getInstance()
+        val today = fmt.format(cal.time)
+        // 今日まだ記録がなければ昨日起点で数える（連続が途切れない猶予）
+        if (today !in set) cal.add(Calendar.DAY_OF_YEAR, -1)
+        var streak = 0
+        while (fmt.format(cal.time) in set) {
+            streak++
+            cal.add(Calendar.DAY_OF_YEAR, -1)
+        }
+        return streak
+    }
 
     // ───── タイマーアクション ─────
 

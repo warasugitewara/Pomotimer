@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- ApkInstaller が context.cacheDir に保存した update.apk を共有するための設定 -->
+    <cache-path name="cache" path="." />
+</paths>

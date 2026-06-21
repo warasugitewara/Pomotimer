@@ -18,7 +18,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.pomodoro.data.DailyStat
 import com.example.pomodoro.data.WorkLog
+import com.example.pomodoro.ui.theme.JetBrainsMono
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -28,6 +30,12 @@ fun WorkLogScreen(
     selectedDate: String,
     logs: List<WorkLog>,
     availableDates: List<String>,
+    dailyStats: List<DailyStat>,
+    totalPomodoros: Int,
+    totalWorkSeconds: Long,
+    streak: Int,
+    statsRangeDays: Int,
+    onSetStatsRange: (Int) -> Unit,
     onSelectDate: (String) -> Unit,
     onDeleteLog: (Long) -> Unit,
     onDeleteDay: (String) -> Unit,
@@ -107,58 +115,160 @@ fun WorkLogScreen(
             )
         }
     ) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.padding(innerPadding).fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 24.dp)
+        ) {
+            // ── 累計サマリ + グラフ ───────────────────
+            item {
+                OverviewSection(
+                    dailyStats = dailyStats,
+                    totalPomodoros = totalPomodoros,
+                    totalWorkSeconds = totalWorkSeconds,
+                    streak = streak,
+                    statsRangeDays = statsRangeDays,
+                    onSetStatsRange = onSetStatsRange
+                )
+            }
+
+            // ── セクション見出し ───────────────────────
+            item {
+                SectionHeader("日別の記録", Modifier.padding(start = 20.dp, top = 8.dp, bottom = 4.dp))
+            }
+
             // ── 日付ナビゲーションバー ─────────────────
-            Card(
-                modifier = Modifier.padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+            item {
+                Card(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    IconButton(onClick = { prevDate?.let(onSelectDate) }, enabled = prevDate != null) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "前の日")
-                    }
-                    Text(
-                        formatDateDisplay(selectedDate),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    IconButton(onClick = { nextDate?.let(onSelectDate) }, enabled = nextDate != null) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "次の日")
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        IconButton(onClick = { prevDate?.let(onSelectDate) }, enabled = prevDate != null) {
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "前の日")
+                        }
+                        Text(
+                            formatDateDisplay(selectedDate),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        IconButton(onClick = { nextDate?.let(onSelectDate) }, enabled = nextDate != null) {
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "次の日")
+                        }
                     }
                 }
             }
 
             if (logs.isEmpty()) {
-                Box(Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Icon(Icons.Default.History, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                        Text("この日の記録はありません", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                item {
+                    Box(Modifier.fillMaxWidth().padding(vertical = 48.dp), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Icon(Icons.Default.History, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                            Text("この日の記録はありません", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             } else {
-                // ── 日次サマリー ──────────────────────────
-                DaySummaryCard(logs = logs, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-
-                Spacer(Modifier.height(8.dp))
-
-                // ── ログ一覧 ──────────────────────────────
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().weight(1f),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    items(logs, key = { it.id }) { log ->
-                        LogItem(log = log, onDelete = { onDeleteLog(log.id) })
-                    }
+                item {
+                    DaySummaryCard(logs = logs, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                    Spacer(Modifier.height(8.dp))
+                }
+                items(logs, key = { it.id }) { log ->
+                    LogItem(log = log, onDelete = { onDeleteLog(log.id) })
                 }
             }
         }
     }
+}
+
+@Composable
+private fun OverviewSection(
+    dailyStats: List<DailyStat>,
+    totalPomodoros: Int,
+    totalWorkSeconds: Long,
+    streak: Int,
+    statsRangeDays: Int,
+    onSetStatsRange: (Int) -> Unit
+) {
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        // 累計スタッツ（mono数値）
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            StatTile(Icons.Default.LocalFireDepartment, streak.toString(), "日連続", Modifier.weight(1f), MaterialTheme.colorScheme.primary)
+            StatTile(Icons.Default.Timer, totalPomodoros.toString(), "総Pomo", Modifier.weight(1f), MaterialTheme.colorScheme.secondary)
+            StatTile(Icons.Default.Schedule, "${totalWorkSeconds / 3600}h", "総作業", Modifier.weight(1f), MaterialTheme.colorScheme.tertiary)
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // グラフカード
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("ポモドーロ推移", style = MaterialTheme.typography.titleSmall)
+                    SingleChoiceSegmentedButtonRow {
+                        listOf(7, 30).forEachIndexed { idx, days ->
+                            SegmentedButton(
+                                selected = statsRangeDays == days,
+                                onClick = { onSetStatsRange(days) },
+                                shape = SegmentedButtonDefaults.itemShape(index = idx, count = 2)
+                            ) { Text("${days}日") }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                if (dailyStats.all { it.pomodoros == 0 }) {
+                    Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                        Text("まだデータがありません", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    PomodoroBarChart(stats = dailyStats)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatTile(icon: ImageVector, value: String, label: String, modifier: Modifier = Modifier, color: androidx.compose.ui.graphics.Color) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.08f))
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(22.dp))
+            Text(value, fontFamily = JetBrainsMono, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        letterSpacing = 1.sp,
+        modifier = modifier
+    )
 }
 
 @Composable

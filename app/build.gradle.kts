@@ -23,8 +23,8 @@ android {
         applicationId = "com.example.pomodoro"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.4.0"
+        versionCode = 6
+        versionName = "1.5.0"
     }
 
     signingConfigs {
@@ -76,5 +76,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.vico.compose)
+    implementation(libs.vico.compose.m3)
     debugImplementation(libs.androidx.ui.tooling)
 }
