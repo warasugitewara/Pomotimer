@@ -28,10 +28,16 @@
 - 短休憩と長休憩を自動判定（デフォルト: 4 回ごとに長休憩）
 - 長休憩の間隔・時間は設定画面でカスタマイズ可能
 
-### 📋 作業ログ
+### 📋 作業ログ・可視化
 - 作業・休憩セッションを自動記録（Room データベース）
 - 日付ナビゲーション（← 前の日 | 日付 | 次の日 →）で過去のログを遡れる
 - ログの個別削除・日単位削除・全削除（確認ダイアログ付き）
+- 累計ポモドーロ数・総作業時間・連続記録日数のサマリー表示
+- 日別ポモドーロ数の棒グラフ（7 日 / 30 日切り替え、[Vico](https://github.com/patrykandpatrick/vico) 製・テーマカラーに追従）
+
+### 🔄 アプリ内アップデート
+- 起動時に最新リリースを自動チェック
+- 新バージョンがあればアプリ内で APK をダウンロード→インストール（ブラウザ遷移不要）
 
 ### 🎨 カラーテーマ
 9 種類のプリセット + カスタムテーマに対応:
@@ -68,6 +74,8 @@
 | データベース | Room 2.8.4 |
 | 設定の永続化 | DataStore Preferences 1.2.1 |
 | 画面遷移 | Navigation Compose 2.9.7 |
+| グラフ | Vico 3.2.2 (compose + compose-m3) |
+| フォント | JetBrains Mono (OFL) |
 | ビルドツール | Gradle 9.4.1 + AGP 8.13.2 + Kotlin 2.2.0 |
 | 最小 SDK | Android 7.0 (API 24) |
 | ターゲット SDK | Android 16 (API 36) |
@@ -80,6 +88,7 @@
 
 | バージョン | 主な変更 |
 |-----------|----------|
+| [v1.5.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.5.0) | タイマー画面 UI/UX 刷新（JetBrains Mono 表示・呼吸するリング・サイクルドット）・ログ画面に Vico グラフと累計サマリーを追加・アプリ内 DL → インストールでのアップデート対応 |
 | [v1.4.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.4.0) | Discord・btop・Catppuccin テーマ追加・起動時アップデート通知・著名を pomotimer.warasugi.com に統一・**APK 署名修正**（v1.3.1 以前から更新する場合はアンインストール後に再インストールが必要です） |
 | [v1.3.1](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.3.1) | ロック画面への通知表示・設定画面にクレジット追加 |
 | [v1.3.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.3.0) | Material3 UI/UX 最適化 |
@@ -120,13 +129,18 @@ app/src/main/java/com/example/pomodoro/
 │   └── TimerService.kt       # フォアグラウンドサービス（タイマー・通知・音声・振動）
 ├── ui/
 │   ├── theme/
-│   │   └── AppTheme.kt       # 6 テーマ定義 + PomotimerTheme
-│   ├── PomotimerApp.kt       # NavHost + BottomNavigation
+│   │   ├── AppTheme.kt       # 10 テーマ定義 + PomotimerTheme
+│   │   └── Type.kt           # JetBrains Mono タイポグラフィ
+│   ├── PomotimerApp.kt       # NavHost + BottomNavigation + アップデートダイアログ
 │   ├── TimerScreen.kt        # タイマー画面
-│   ├── WorkLogScreen.kt      # 作業ログ画面
+│   ├── WorkLogScreen.kt      # 作業ログ画面（サマリー + グラフ）
+│   ├── StatsChart.kt         # Vico 製の日別ポモドーロ棒グラフ
 │   └── SettingsScreen.kt     # 設定画面
+├── util/
+│   ├── UpdateChecker.kt      # GitHub Releases から最新版・APK URL を取得
+│   └── ApkInstaller.kt       # APK ダウンロード + インストール起動
 ├── viewmodel/
-│   └── TimerViewModel.kt     # ViewModel（サービス委譲 + DataStore）
+│   └── TimerViewModel.kt     # ViewModel（サービス委譲 + DataStore + 統計）
 └── MainActivity.kt
 ```
 
