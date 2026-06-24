@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Pomotimer</string>
+    <string name="widget_description">残り時間の確認・開始・一時停止・リセットができます</string>
 </resources>

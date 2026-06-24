@@ -23,8 +23,8 @@ android {
         applicationId = "com.example.pomodoro"
         minSdk = 24
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.5.0"
+        versionCode = 7
+        versionName = "1.6.0"
     }
 
     signingConfigs {
@@ -78,5 +78,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.vico.compose)
     implementation(libs.vico.compose.m3)
+    implementation(libs.glance.appwidget)
+    implementation(libs.glance.material3)
     debugImplementation(libs.androidx.ui.tooling)
 }

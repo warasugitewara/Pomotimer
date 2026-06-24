@@ -23,6 +23,8 @@ import com.example.pomodoro.data.AppDatabase
 import com.example.pomodoro.data.SettingsRepository
 import com.example.pomodoro.data.WorkLog
 import com.example.pomodoro.model.TimerState
+import androidx.glance.appwidget.updateAll
+import com.example.pomodoro.ui.widget.PomotimerWidget
 import com.example.pomodoro.util.DiscordRpcReporter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -159,6 +161,7 @@ class TimerService : LifecycleService() {
     /** Discord RPCブリッジへ現在状態を通知する（無効時/未設定時は内部で何もしない）。 */
     private fun reportRpc(force: Boolean = false) {
         DiscordRpcReporter.notifyState(settings, _uiState.value, force)
+        lifecycleScope.launch { PomotimerWidget().updateAll(this@TimerService) }
     }
 
     private fun setWorkDuration(minutes: Int) {
