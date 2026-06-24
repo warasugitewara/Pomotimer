@@ -25,6 +25,8 @@ class SettingsRepository(private val context: Context) {
         val DISCORD_RPC_ENABLED   = booleanPreferencesKey("discord_rpc_enabled")
         val DISCORD_BRIDGE_URL    = stringPreferencesKey("discord_bridge_url")
         val DISCORD_BRIDGE_TOKEN  = stringPreferencesKey("discord_bridge_token")
+        val AUTO_START_BREAK      = booleanPreferencesKey("auto_start_break")
+        val AUTO_START_WORK       = booleanPreferencesKey("auto_start_work")
     }
 
     val notificationEnabled: Flow<Boolean> = context.dataStore.data.map { it[NOTIFICATION_ENABLED] ?: true }
@@ -37,6 +39,8 @@ class SettingsRepository(private val context: Context) {
     val discordRpcEnabled:   Flow<Boolean> = context.dataStore.data.map { it[DISCORD_RPC_ENABLED]   ?: false }
     val discordBridgeUrl:    Flow<String>  = context.dataStore.data.map { it[DISCORD_BRIDGE_URL]    ?: "" }
     val discordBridgeToken:  Flow<String>  = context.dataStore.data.map { it[DISCORD_BRIDGE_TOKEN]  ?: "" }
+    val autoStartBreak:      Flow<Boolean> = context.dataStore.data.map { it[AUTO_START_BREAK]      ?: false }
+    val autoStartWork:       Flow<Boolean> = context.dataStore.data.map { it[AUTO_START_WORK]       ?: false }
 
     suspend fun setNotificationEnabled(v: Boolean) = context.dataStore.edit { it[NOTIFICATION_ENABLED] = v }
     suspend fun setSoundEnabled(v: Boolean)        = context.dataStore.edit { it[SOUND_ENABLED]         = v }
@@ -48,4 +52,6 @@ class SettingsRepository(private val context: Context) {
     suspend fun setDiscordRpcEnabled(v: Boolean)   = context.dataStore.edit { it[DISCORD_RPC_ENABLED]   = v }
     suspend fun setDiscordBridgeUrl(v: String)     = context.dataStore.edit { it[DISCORD_BRIDGE_URL]    = v }
     suspend fun setDiscordBridgeToken(v: String)   = context.dataStore.edit { it[DISCORD_BRIDGE_TOKEN]  = v }
+    suspend fun setAutoStartBreak(v: Boolean)      = context.dataStore.edit { it[AUTO_START_BREAK]      = v }
+    suspend fun setAutoStartWork(v: Boolean)       = context.dataStore.edit { it[AUTO_START_WORK]       = v }
 }

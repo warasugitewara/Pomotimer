@@ -243,11 +243,14 @@ class TimerService : LifecycleService() {
             val notifOn = settings.notificationEnabled.first()
             val soundOn = settings.soundEnabled.first()
             val vibOn   = settings.vibrationEnabled.first()
+            val autoStart = if (nextIsWork) settings.autoStartWork.first() else settings.autoStartBreak.first()
 
             if (soundOn)  playAlarmSound()
             if (vibOn)    vibrate()
 
-            if (notifOn) {
+            if (autoStart) {
+                startTimer()
+            } else if (notifOn) {
                 val label = when {
                     wasWork && takeLongBreak -> "お疲れ様！長休憩の時間です 🌙"
                     wasWork                  -> "作業時間終了！休憩しましょう ☕"

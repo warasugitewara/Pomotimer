@@ -42,6 +42,8 @@ fun SettingsScreen(
     discordBridgeUrl: String,
     discordBridgeToken: String,
     connectionTestResult: Boolean?,
+    autoStartBreak: Boolean,
+    autoStartWork: Boolean,
     onNotifToggle: (Boolean) -> Unit,
     onSoundToggle: (Boolean) -> Unit,
     onVibrationToggle: (Boolean) -> Unit,
@@ -52,7 +54,9 @@ fun SettingsScreen(
     onDiscordRpcToggle: (Boolean) -> Unit,
     onDiscordBridgeUrlChange: (String) -> Unit,
     onDiscordBridgeTokenChange: (String) -> Unit,
-    onTestDiscordConnection: (String, String) -> Unit
+    onTestDiscordConnection: (String, String) -> Unit,
+    onAutoStartBreakToggle: (Boolean) -> Unit,
+    onAutoStartWorkToggle: (Boolean) -> Unit
 ) {
     val scrollState = rememberScrollState()
 
@@ -75,6 +79,25 @@ fun SettingsScreen(
             SettingsToggleItem(Icons.Default.Notifications, "プッシュ通知", "セッション終了を通知", notificationEnabled, onNotifToggle)
             SettingsToggleItem(Icons.AutoMirrored.Filled.VolumeUp, "サウンド", "アラーム音を有効化", soundEnabled, onSoundToggle)
             SettingsToggleItem(Icons.Default.Vibration, "バイブレーション", "終了時に振動", vibrationEnabled, onVibrationToggle)
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── サイクル ───────────────────────────────────
+            SectionHeader("サイクル")
+            SettingsToggleItem(
+                Icons.Default.PlayCircle,
+                "休憩を自動開始",
+                "作業終了後、操作なしで休憩を開始",
+                autoStartBreak,
+                onAutoStartBreakToggle
+            )
+            SettingsToggleItem(
+                Icons.Default.PlayCircle,
+                "作業を自動開始",
+                "休憩終了後、操作なしで作業を開始",
+                autoStartWork,
+                onAutoStartWorkToggle
+            )
 
             Spacer(Modifier.height(16.dp))
 

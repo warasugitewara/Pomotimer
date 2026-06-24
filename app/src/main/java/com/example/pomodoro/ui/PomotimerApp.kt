@@ -62,6 +62,8 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
     val discordBridgeUrl   by vm.discordBridgeUrl.collectAsStateWithLifecycle("")
     val discordBridgeToken by vm.discordBridgeToken.collectAsStateWithLifecycle("")
     val connectionTestResult by vm.connectionTestResult.collectAsStateWithLifecycle(null)
+    val autoStartBreak by vm.autoStartBreak.collectAsStateWithLifecycle(false)
+    val autoStartWork  by vm.autoStartWork.collectAsStateWithLifecycle(false)
     val appTheme = AppTheme.entries.find { it.name == appThemeName } ?: AppTheme.LIGHT
 
     val updateInfo by vm.updateInfo.collectAsStateWithLifecycle(null)
@@ -193,7 +195,11 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
                         onDiscordRpcToggle          = vm::setDiscordRpcEnabled,
                         onDiscordBridgeUrlChange    = vm::setDiscordBridgeUrl,
                         onDiscordBridgeTokenChange  = vm::setDiscordBridgeToken,
-                        onTestDiscordConnection     = vm::testDiscordConnection
+                        onTestDiscordConnection     = vm::testDiscordConnection,
+                        autoStartBreak              = autoStartBreak,
+                        autoStartWork                = autoStartWork,
+                        onAutoStartBreakToggle       = vm::setAutoStartBreak,
+                        onAutoStartWorkToggle        = vm::setAutoStartWork
                     )
                 }
             }

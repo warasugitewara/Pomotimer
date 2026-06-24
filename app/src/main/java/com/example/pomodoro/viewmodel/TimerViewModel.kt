@@ -126,6 +126,8 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
     // ───── 設定 ─────
 
     fun setNotificationEnabled(v: Boolean)  = viewModelScope.launch { settings.setNotificationEnabled(v) }
+    fun setAutoStartBreak(v: Boolean)       = viewModelScope.launch { settings.setAutoStartBreak(v) }
+    fun setAutoStartWork(v: Boolean)        = viewModelScope.launch { settings.setAutoStartWork(v) }
     fun setSoundEnabled(v: Boolean)         = viewModelScope.launch { settings.setSoundEnabled(v) }
     fun setVibrationEnabled(v: Boolean)     = viewModelScope.launch { settings.setVibrationEnabled(v) }
     fun setAppTheme(v: String)              = viewModelScope.launch { settings.setAppTheme(v) }
@@ -138,6 +140,11 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
     val discordRpcEnabled  = settings.discordRpcEnabled
     val discordBridgeUrl   = settings.discordBridgeUrl
     val discordBridgeToken = settings.discordBridgeToken
+
+    // ───── サイクル自動開始 ─────
+
+    val autoStartBreak = settings.autoStartBreak
+    val autoStartWork  = settings.autoStartWork
 
     fun setDiscordRpcEnabled(v: Boolean)  = viewModelScope.launch { settings.setDiscordRpcEnabled(v) }
     fun setDiscordBridgeUrl(v: String)    = viewModelScope.launch { settings.setDiscordBridgeUrl(v) }

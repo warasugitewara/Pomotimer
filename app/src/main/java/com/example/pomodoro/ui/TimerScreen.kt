@@ -139,14 +139,29 @@ fun TimerScreen(
                     value = uiState.preferredWorkDurationMinutes,
                     onValueChange = onSetWorkDuration,
                     color = MaterialTheme.colorScheme.primary,
-                    range = 5f..60f
+                    range = 1f..180f
                 )
                 QuickDurationSlider(
                     label = "休憩",
                     value = uiState.preferredBreakDurationMinutes,
                     onValueChange = onSetBreakDuration,
                     color = MaterialTheme.colorScheme.secondary,
-                    range = 1f..30f
+                    range = 1f..60f
+                )
+                QuickDurationSlider(
+                    label = "長休憩",
+                    value = uiState.preferredLongBreakDurationMinutes,
+                    onValueChange = onSetLongBreakDuration,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    range = 1f..120f
+                )
+                QuickDurationSlider(
+                    label = "長休憩までの回数",
+                    value = uiState.longBreakInterval,
+                    onValueChange = onSetLongBreakInterval,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    range = 2f..10f,
+                    unit = "回"
                 )
             }
         }
@@ -250,7 +265,8 @@ fun QuickDurationSlider(
     value: Int,
     onValueChange: (Int) -> Unit,
     color: Color,
-    range: ClosedFloatingPointRange<Float>
+    range: ClosedFloatingPointRange<Float>,
+    unit: String = "min"
 ) {
     Column {
         Row(
@@ -260,7 +276,7 @@ fun QuickDurationSlider(
         ) {
             Text(label, style = MaterialTheme.typography.bodyMedium)
             Text(
-                "${value}min",
+                "$value$unit",
                 style = MaterialTheme.typography.labelLarge,
                 fontFamily = com.example.pomodoro.ui.theme.JetBrainsMono,
                 color = color
