@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
@@ -18,10 +19,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pomodoro.ui.theme.AppTheme
 import com.example.pomodoro.ui.theme.parseHexColor
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,13 +38,21 @@ fun SettingsScreen(
     customBg: String,
     customText: String,
     customAccent: String,
+    discordRpcEnabled: Boolean,
+    discordBridgeUrl: String,
+    discordBridgeToken: String,
+    connectionTestResult: Boolean?,
     onNotifToggle: (Boolean) -> Unit,
     onSoundToggle: (Boolean) -> Unit,
     onVibrationToggle: (Boolean) -> Unit,
     onThemeChange: (String) -> Unit,
     onCustomBgChange: (String) -> Unit,
     onCustomTextChange: (String) -> Unit,
-    onCustomAccentChange: (String) -> Unit
+    onCustomAccentChange: (String) -> Unit,
+    onDiscordRpcToggle: (Boolean) -> Unit,
+    onDiscordBridgeUrlChange: (String) -> Unit,
+    onDiscordBridgeTokenChange: (String) -> Unit,
+    onTestDiscordConnection: (String, String) -> Unit
 ) {
     val scrollState = rememberScrollState()
 
@@ -80,6 +93,28 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
 
+            // ── Discord RPC連携 ──────────────────────────────
+            SectionHeader("Discord RPC連携")
+            SettingsToggleItem(
+                Icons.Default.SmartToy,
+                "Waras-discordRPCと連携",
+                "タイマー状態をDiscordのステータスに表示",
+                discordRpcEnabled,
+                onDiscordRpcToggle
+            )
+            if (discordRpcEnabled) {
+                DiscordRpcConfig(
+                    bridgeUrl = discordBridgeUrl,
+                    token = discordBridgeToken,
+                    connectionTestResult = connectionTestResult,
+                    onBridgeUrlChange = onDiscordBridgeUrlChange,
+                    onTokenChange = onDiscordBridgeTokenChange,
+                    onTestConnection = onTestDiscordConnection
+                )
+            }
+
+            Spacer(Modifier.height(24.dp))
+
             // ── アプリ情報 ─────────────────────────────────
             SectionHeader("情報")
             InfoItem(Icons.Default.Info, "バージョン", com.example.pomodoro.BuildConfig.VERSION_NAME)
@@ -87,9 +122,20 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── クレジット ─────────────────────────────────
+            // ── クレジット（情報ハブ） ─────────────────────
             SectionHeader("クレジット")
-            CreditItem(Icons.Default.Person, "作者", "pomotimer.warasugi.com", "https://pomotimer.warasugi.com")
+            CreditItem(Icons.Default.Code, "Repository", "GitHub - Pomotimer", "https://github.com/warasugitewara/Pomotimer")
+            CreditItem(Icons.Default.Person, "Developer", ".warasugi", "https://github.com/warasugitewara")
+            CreditItem(Icons.Default.Gavel, "License", "MIT License", "https://github.com/warasugitewara/Pomotimer/blob/main/LICENSE")
+
+            Spacer(Modifier.height(16.dp))
+
+            SectionHeader("OSS Credits")
+            InfoItem(Icons.Default.Storage, "Room", "Apache License 2.0")
+            InfoItem(Icons.Default.Save, "DataStore", "Apache License 2.0")
+            InfoItem(Icons.Default.SwapHoriz, "Navigation Compose", "Apache License 2.0")
+            InfoItem(Icons.Default.BarChart, "Vico", "Apache License 2.0")
+            InfoItem(Icons.Default.TextFields, "JetBrains Mono", "SIL Open Font License 1.1")
 
             Spacer(Modifier.height(32.dp))
 
@@ -232,6 +278,66 @@ private fun ThemeColorCircle(
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         samples.forEach { color ->
             Surface(modifier = Modifier.size(24.dp), color = color, shape = CircleShape, border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))) {}
+        }
+    }
+}
+
+@Composable
+private fun DiscordRpcConfig(
+    bridgeUrl: String,
+    token: String,
+    connectionTestResult: Boolean?,
+    onBridgeUrlChange: (String) -> Unit,
+    onTokenChange: (String) -> Unit,
+    onTestConnection: (String, String) -> Unit
+) {
+    var urlDraft by remember(bridgeUrl) { mutableStateOf(bridgeUrl) }
+    var tokenDraft by remember(token) { mutableStateOf(token) }
+    var tokenVisible by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OutlinedTextField(
+            value = urlDraft,
+            onValueChange = { urlDraft = it; onBridgeUrlChange(it) },
+            label = { Text("Bridge URL") },
+            placeholder = { Text("https://xxxx") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = MaterialTheme.typography.bodySmall
+        )
+        OutlinedTextField(
+            value = tokenDraft,
+            onValueChange = { tokenDraft = it; onTokenChange(it) },
+            label = { Text("Token") },
+            singleLine = true,
+            visualTransformation = if (tokenVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { tokenVisible = !tokenVisible }) {
+                    Icon(
+                        if (tokenVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (tokenVisible) "非表示" else "表示"
+                    )
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = MaterialTheme.typography.bodySmall
+        )
+
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(
+                onClick = { onTestConnection(urlDraft, tokenDraft) },
+                enabled = urlDraft.isNotBlank() && tokenDraft.isNotBlank()
+            ) { Text("接続テスト") }
+
+            when (connectionTestResult) {
+                true  -> Text("✅ 接続成功", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                false -> Text("❌ 接続失敗", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium)
+                null  -> {}
+            }
         }
     }
 }

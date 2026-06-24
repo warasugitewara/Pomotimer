@@ -22,6 +22,9 @@ class SettingsRepository(private val context: Context) {
         val CUSTOM_BG_COLOR       = stringPreferencesKey("custom_bg_color")
         val CUSTOM_TEXT_COLOR     = stringPreferencesKey("custom_text_color")
         val CUSTOM_ACCENT_COLOR   = stringPreferencesKey("custom_accent_color")
+        val DISCORD_RPC_ENABLED   = booleanPreferencesKey("discord_rpc_enabled")
+        val DISCORD_BRIDGE_URL    = stringPreferencesKey("discord_bridge_url")
+        val DISCORD_BRIDGE_TOKEN  = stringPreferencesKey("discord_bridge_token")
     }
 
     val notificationEnabled: Flow<Boolean> = context.dataStore.data.map { it[NOTIFICATION_ENABLED] ?: true }
@@ -31,6 +34,9 @@ class SettingsRepository(private val context: Context) {
     val customBgColor:       Flow<String>  = context.dataStore.data.map { it[CUSTOM_BG_COLOR]       ?: "#FAFAFA" }
     val customTextColor:     Flow<String>  = context.dataStore.data.map { it[CUSTOM_TEXT_COLOR]     ?: "#212121" }
     val customAccentColor:   Flow<String>  = context.dataStore.data.map { it[CUSTOM_ACCENT_COLOR]   ?: "#E53935" }
+    val discordRpcEnabled:   Flow<Boolean> = context.dataStore.data.map { it[DISCORD_RPC_ENABLED]   ?: false }
+    val discordBridgeUrl:    Flow<String>  = context.dataStore.data.map { it[DISCORD_BRIDGE_URL]    ?: "" }
+    val discordBridgeToken:  Flow<String>  = context.dataStore.data.map { it[DISCORD_BRIDGE_TOKEN]  ?: "" }
 
     suspend fun setNotificationEnabled(v: Boolean) = context.dataStore.edit { it[NOTIFICATION_ENABLED] = v }
     suspend fun setSoundEnabled(v: Boolean)        = context.dataStore.edit { it[SOUND_ENABLED]         = v }
@@ -39,4 +45,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setCustomBgColor(v: String)        = context.dataStore.edit { it[CUSTOM_BG_COLOR]       = v }
     suspend fun setCustomTextColor(v: String)      = context.dataStore.edit { it[CUSTOM_TEXT_COLOR]     = v }
     suspend fun setCustomAccentColor(v: String)    = context.dataStore.edit { it[CUSTOM_ACCENT_COLOR]   = v }
+    suspend fun setDiscordRpcEnabled(v: Boolean)   = context.dataStore.edit { it[DISCORD_RPC_ENABLED]   = v }
+    suspend fun setDiscordBridgeUrl(v: String)     = context.dataStore.edit { it[DISCORD_BRIDGE_URL]    = v }
+    suspend fun setDiscordBridgeToken(v: String)   = context.dataStore.edit { it[DISCORD_BRIDGE_TOKEN]  = v }
 }

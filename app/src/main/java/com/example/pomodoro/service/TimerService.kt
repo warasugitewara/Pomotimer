@@ -23,6 +23,7 @@ import com.example.pomodoro.data.AppDatabase
 import com.example.pomodoro.data.SettingsRepository
 import com.example.pomodoro.data.WorkLog
 import com.example.pomodoro.model.TimerState
+import com.example.pomodoro.util.DiscordRpcReporter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -118,6 +119,7 @@ class TimerService : LifecycleService() {
         sessionStartTime = System.currentTimeMillis()
         sessionStartRemaining = _uiState.value.remainingSeconds
         _uiState.update { it.copy(isRunning = true) }
+        reportRpc(force = true)
         lastTickTime = System.currentTimeMillis()
         startForeground(NOTIF_ID_TIMER, buildTimerNotification())
         timerJob = lifecycleScope.launch {
@@ -131,6 +133,7 @@ class TimerService : LifecycleService() {
                     }
                     lastTickTime += elapsed * 1000
                     notifManager.notify(NOTIF_ID_TIMER, buildTimerNotification())
+                    reportRpc()
                 }
                 if (_uiState.value.remainingSeconds <= 0L) break
             }
@@ -141,6 +144,7 @@ class TimerService : LifecycleService() {
     private fun pauseTimer() {
         timerJob?.cancel()
         _uiState.update { it.copy(isRunning = false) }
+        reportRpc(force = true)
         notifManager.notify(NOTIF_ID_TIMER, buildTimerNotification())
     }
 
@@ -148,7 +152,13 @@ class TimerService : LifecycleService() {
         timerJob?.cancel()
         stopAlarm()
         _uiState.update { s -> s.copy(remainingSeconds = s.totalSeconds, isRunning = false) }
+        reportRpc(force = true)
         notifManager.notify(NOTIF_ID_TIMER, buildTimerNotification())
+    }
+
+    /** Discord RPCブリッジへ現在状態を通知する（無効時/未設定時は内部で何もしない）。 */
+    private fun reportRpc(force: Boolean = false) {
+        DiscordRpcReporter.notifyState(settings, _uiState.value, force)
     }
 
     private fun setWorkDuration(minutes: Int) {
@@ -171,6 +181,7 @@ class TimerService : LifecycleService() {
     private fun stopAll() {
         timerJob?.cancel()
         stopAlarm()
+        DiscordRpcReporter.notifyClear(settings)
         _uiState.value = TimerState()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -181,6 +192,7 @@ class TimerService : LifecycleService() {
         alarmPlayer = null
         _uiState.update { it.copy(isAlarmPlaying = false) }
         notifManager.cancel(NOTIF_ID_ALERT)
+        reportRpc(force = true)
     }
 
     // ────────────── Timer finished ──────────────
@@ -225,6 +237,7 @@ class TimerService : LifecycleService() {
                 pomodorosInCycle      = nextPomosInCycle
             )
         }
+        reportRpc(force = true)
 
         lifecycleScope.launch {
             val notifOn = settings.notificationEnabled.first()
@@ -336,6 +349,7 @@ class TimerService : LifecycleService() {
     private fun playAlarmSound() {
         stopAlarm()
         _uiState.update { it.copy(isAlarmPlaying = true) }
+        reportRpc(force = true)
         try {
             val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             alarmPlayer = MediaPlayer().apply {
@@ -352,6 +366,7 @@ class TimerService : LifecycleService() {
                     alarmPlayer = null
                     _uiState.update { it.copy(isAlarmPlaying = false) }
                     notifManager.cancel(NOTIF_ID_ALERT)
+                    reportRpc(force = true)
                 }
             }
         } catch (e: Exception) {

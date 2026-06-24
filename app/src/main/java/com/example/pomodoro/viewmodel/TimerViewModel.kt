@@ -8,6 +8,7 @@ import com.example.pomodoro.data.AppDatabase
 import com.example.pomodoro.data.SettingsRepository
 import com.example.pomodoro.model.TimerState
 import com.example.pomodoro.service.TimerService
+import com.example.pomodoro.util.DiscordRpcReporter
 import com.example.pomodoro.util.UpdateInfo
 import com.example.pomodoro.util.fetchLatestRelease
 import com.example.pomodoro.util.isNewerVersion
@@ -131,4 +132,25 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
     fun setCustomBgColor(v: String)         = viewModelScope.launch { settings.setCustomBgColor(v) }
     fun setCustomTextColor(v: String)       = viewModelScope.launch { settings.setCustomTextColor(v) }
     fun setCustomAccentColor(v: String)     = viewModelScope.launch { settings.setCustomAccentColor(v) }
+
+    // ───── Discord RPC連携 ─────
+
+    val discordRpcEnabled  = settings.discordRpcEnabled
+    val discordBridgeUrl   = settings.discordBridgeUrl
+    val discordBridgeToken = settings.discordBridgeToken
+
+    fun setDiscordRpcEnabled(v: Boolean)  = viewModelScope.launch { settings.setDiscordRpcEnabled(v) }
+    fun setDiscordBridgeUrl(v: String)    = viewModelScope.launch { settings.setDiscordBridgeUrl(v) }
+    fun setDiscordBridgeToken(v: String)  = viewModelScope.launch { settings.setDiscordBridgeToken(v) }
+
+    private val _connectionTestResult = MutableStateFlow<Boolean?>(null)
+    /** 接続テストの結果。null=未実行、true=成功、false=失敗。 */
+    val connectionTestResult: StateFlow<Boolean?> = _connectionTestResult.asStateFlow()
+
+    fun testDiscordConnection(url: String, token: String) {
+        viewModelScope.launch {
+            _connectionTestResult.value = null
+            _connectionTestResult.value = DiscordRpcReporter.testConnection(url, token)
+        }
+    }
 }

@@ -57,6 +57,11 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
     val customBg      by vm.settings.customBgColor.collectAsStateWithLifecycle("#FAFAFA")
     val customText    by vm.settings.customTextColor.collectAsStateWithLifecycle("#212121")
     val customAccent  by vm.settings.customAccentColor.collectAsStateWithLifecycle("#E53935")
+
+    val discordRpcEnabled  by vm.discordRpcEnabled.collectAsStateWithLifecycle(false)
+    val discordBridgeUrl   by vm.discordBridgeUrl.collectAsStateWithLifecycle("")
+    val discordBridgeToken by vm.discordBridgeToken.collectAsStateWithLifecycle("")
+    val connectionTestResult by vm.connectionTestResult.collectAsStateWithLifecycle(null)
     val appTheme = AppTheme.entries.find { it.name == appThemeName } ?: AppTheme.LIGHT
 
     val updateInfo by vm.updateInfo.collectAsStateWithLifecycle(null)
@@ -180,7 +185,15 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
                         onThemeChange        = vm::setAppTheme,
                         onCustomBgChange     = vm::setCustomBgColor,
                         onCustomTextChange   = vm::setCustomTextColor,
-                        onCustomAccentChange = vm::setCustomAccentColor
+                        onCustomAccentChange = vm::setCustomAccentColor,
+                        discordRpcEnabled       = discordRpcEnabled,
+                        discordBridgeUrl        = discordBridgeUrl,
+                        discordBridgeToken      = discordBridgeToken,
+                        connectionTestResult    = connectionTestResult,
+                        onDiscordRpcToggle          = vm::setDiscordRpcEnabled,
+                        onDiscordBridgeUrlChange    = vm::setDiscordBridgeUrl,
+                        onDiscordBridgeTokenChange  = vm::setDiscordBridgeToken,
+                        onTestDiscordConnection     = vm::testDiscordConnection
                     )
                 }
             }
