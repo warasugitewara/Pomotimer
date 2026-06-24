@@ -35,6 +35,8 @@ fun WorkLogScreen(
     totalWorkSeconds: Long,
     streak: Int,
     statsRangeDays: Int,
+    longestFocusSeconds: Long,
+    statsLast30Days: List<DailyStat>,
     onSetStatsRange: (Int) -> Unit,
     onSelectDate: (String) -> Unit,
     onDeleteLog: (Long) -> Unit,
@@ -127,6 +129,8 @@ fun WorkLogScreen(
                     totalWorkSeconds = totalWorkSeconds,
                     streak = streak,
                     statsRangeDays = statsRangeDays,
+                    longestFocusSeconds = longestFocusSeconds,
+                    statsLast30Days = statsLast30Days,
                     onSetStatsRange = onSetStatsRange
                 )
             }
@@ -192,17 +196,40 @@ private fun OverviewSection(
     totalWorkSeconds: Long,
     streak: Int,
     statsRangeDays: Int,
+    longestFocusSeconds: Long,
+    statsLast30Days: List<DailyStat>,
     onSetStatsRange: (Int) -> Unit
 ) {
+    var groupByWeekday by remember { mutableStateOf(false) }
+
     Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        // 期間別サマリ（今日/今週/今月/累計）
+        val todayKey = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) }
+        val weekAgoKey = remember { dateKeyDaysAgo(7) }
+        val todayPomos = statsLast30Days.firstOrNull { it.date == todayKey }?.pomodoros ?: 0
+        val weekPomos  = statsLast30Days.filter { it.date >= weekAgoKey }.sumOf { it.pomodoros }
+        val monthPomos = statsLast30Days.sumOf { it.pomodoros }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            PeriodTile("今日", todayPomos, Modifier.weight(1f))
+            PeriodTile("今週", weekPomos, Modifier.weight(1f))
+            PeriodTile("今月", monthPomos, Modifier.weight(1f))
+            PeriodTile("累計", totalPomodoros, Modifier.weight(1f))
+        }
+
+        Spacer(Modifier.height(12.dp))
+
         // 累計スタッツ（mono数値）
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             StatTile(Icons.Default.LocalFireDepartment, streak.toString(), "日連続", Modifier.weight(1f), MaterialTheme.colorScheme.primary)
-            StatTile(Icons.Default.Timer, totalPomodoros.toString(), "総Pomo", Modifier.weight(1f), MaterialTheme.colorScheme.secondary)
             StatTile(Icons.Default.Schedule, "${totalWorkSeconds / 3600}h", "総作業", Modifier.weight(1f), MaterialTheme.colorScheme.tertiary)
+            StatTile(Icons.Default.EmojiEvents, "${longestFocusSeconds / 60}min", "最長集中", Modifier.weight(1f), MaterialTheme.colorScheme.secondary)
         }
 
         Spacer(Modifier.height(16.dp))
@@ -229,17 +256,69 @@ private fun OverviewSection(
                         }
                     }
                 }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    SingleChoiceSegmentedButtonRow {
+                        listOf("日別" to false, "曜日別" to true).forEachIndexed { idx, (label, value) ->
+                            SegmentedButton(
+                                selected = groupByWeekday == value,
+                                onClick = { groupByWeekday = value },
+                                shape = SegmentedButtonDefaults.itemShape(index = idx, count = 2)
+                            ) { Text(label, fontSize = 12.sp) }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
                 if (dailyStats.all { it.pomodoros == 0 }) {
                     Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
                         Text("まだデータがありません", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
-                    PomodoroBarChart(stats = dailyStats)
+                    val chartStats = if (groupByWeekday) aggregateByWeekday(dailyStats) else dailyStats
+                    PomodoroBarChart(stats = chartStats)
                 }
             }
         }
     }
+}
+
+@Composable
+private fun PeriodTile(label: String, pomodoros: Int, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(pomodoros.toString(), fontFamily = JetBrainsMono, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+private fun dateKeyDaysAgo(days: Int): String {
+    val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -(days - 1)) }
+    return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.time)
+}
+
+/** 曜日（月〜日）ごとにポモドーロ数・作業秒を合算する。date欄には曜日名を入れる。 */
+private fun aggregateByWeekday(stats: List<DailyStat>): List<DailyStat> {
+    val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val weekdayFmt = SimpleDateFormat("E", Locale.JAPANESE)
+    val order = listOf("月", "火", "水", "木", "金", "土", "日")
+    val buckets = LinkedHashMap<String, Pair<Int, Long>>()
+    order.forEach { buckets[it] = 0 to 0L }
+
+    stats.forEach { stat ->
+        val date = try { fmt.parse(stat.date) } catch (_: Exception) { null } ?: return@forEach
+        val label = weekdayFmt.format(date).removeSuffix("曜日").let { if (it.length > 1) it.take(1) else it }
+        val key = order.firstOrNull { it == label } ?: return@forEach
+        val (pomos, secs) = buckets[key] ?: (0 to 0L)
+        buckets[key] = (pomos + stat.pomodoros) to (secs + stat.workSeconds)
+    }
+
+    return order.map { day -> DailyStat(day, buckets[day]?.first ?: 0, buckets[day]?.second ?: 0L) }
 }
 
 @Composable

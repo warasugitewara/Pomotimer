@@ -39,6 +39,10 @@ interface WorkLogDao {
     @Query("SELECT COALESCE(SUM(actualSeconds), 0) FROM work_logs WHERE sessionType = 'WORK'")
     fun getTotalWorkSeconds(): Flow<Long>
 
+    /** 最長の集中時間（単一セッションのWORK秒）。 */
+    @Query("SELECT COALESCE(MAX(actualSeconds), 0) FROM work_logs WHERE sessionType = 'WORK'")
+    fun getLongestFocusSeconds(): Flow<Long>
+
     /** ポモドーロを記録した日付一覧（新しい順）。ストリーク算出に用いる。 */
     @Query(
         """

@@ -77,9 +77,13 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
 
     val totalPomodoros   = dao.getTotalPomodoros()
     val totalWorkSeconds = dao.getTotalWorkSeconds()
+    val longestFocusSeconds = dao.getLongestFocusSeconds()
 
     /** 今日（または昨日）から連続でポモドーロを記録した日数。 */
     val currentStreak = dao.getPomodoroDates().map { dates -> computeStreak(dates) }
+
+    /** 今日/今週(直近7日)/今月(直近30日)の集計タイル用。表示トグルとは独立した固定30日分。 */
+    val statsLast30Days = dao.getDailyStatsSince(startMillisDaysAgo(30))
 
     /** [days] 日前の0時0分の epoch ミリ秒。 */
     private fun startMillisDaysAgo(days: Int): Long {

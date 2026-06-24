@@ -52,6 +52,8 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
     val totalWorkSec by vm.totalWorkSeconds.collectAsStateWithLifecycle(0L)
     val streak       by vm.currentStreak.collectAsStateWithLifecycle(0)
     val statsRange   by vm.statsRangeDays.collectAsStateWithLifecycle()
+    val longestFocusSec by vm.longestFocusSeconds.collectAsStateWithLifecycle(0L)
+    val statsLast30  by vm.statsLast30Days.collectAsStateWithLifecycle(emptyList())
 
     val appThemeName  by vm.settings.appTheme.collectAsStateWithLifecycle("LIGHT")
     val customBg      by vm.settings.customBgColor.collectAsStateWithLifecycle("#FAFAFA")
@@ -160,6 +162,8 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
                         totalWorkSeconds = totalWorkSec,
                         streak           = streak,
                         statsRangeDays   = statsRange,
+                        longestFocusSeconds = longestFocusSec,
+                        statsLast30Days  = statsLast30,
                         onSetStatsRange  = vm::setStatsRange,
                         onSelectDate     = vm::setSelectedDate,
                         onDeleteLog      = vm::deleteLog,
