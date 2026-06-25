@@ -20,11 +20,11 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.pomodoro"
+        applicationId = "com.warasugi.pomotimer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 8
-        versionName = "1.6.1"
+        versionCode = 9
+        versionName = "1.6.2"
     }
 
     signingConfigs {

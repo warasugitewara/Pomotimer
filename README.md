@@ -26,7 +26,16 @@
 
 ### ⏰ ポモドーロサイクル
 - 短休憩と長休憩を自動判定（デフォルト: 4 回ごとに長休憩）
-- 長休憩の間隔・時間は設定画面でカスタマイズ可能
+- 作業 1〜60 分・短休憩 1〜60 分・長休憩 1〜120 分・長休憩間隔 2〜10 回まで調整可能
+- 休憩/作業の自動開始 ON/OFF（操作なしで次のセッションへ自動遷移）
+- タスク名を記録して作業ログ・Discord RPC 表示に反映（任意）
+
+### 🎮 Discord RPC連携
+- [Waras-discordRPC](https://github.com/warasugitewara/Waras-discordRPC) ブリッジと連携し、タイマー状態を Discord のステータスに表示
+- 設定画面で ON/OFF・Bridge URL・Token・接続テストを設定可能
+
+### 📱 ホーム画面ウィジェット
+- 残り時間・現在モードの確認、開始 / 一時停止 / リセット操作をアプリを開かずに実行（Jetpack Glance 製）
 
 ### 📋 作業ログ・可視化
 - 作業・休憩セッションを自動記録（Room データベース）
@@ -76,6 +85,7 @@
 | 画面遷移 | Navigation Compose 2.9.7 |
 | グラフ | Vico 3.2.2 (compose + compose-m3) |
 | フォント | JetBrains Mono (OFL) |
+| ホーム画面ウィジェット | Jetpack Glance 1.1.1 |
 | ビルドツール | Gradle 9.4.1 + AGP 8.13.2 + Kotlin 2.2.0 |
 | 最小 SDK | Android 7.0 (API 24) |
 | ターゲット SDK | Android 16 (API 36) |
@@ -88,6 +98,9 @@
 
 | バージョン | 主な変更 |
 |-----------|----------|
+| [v1.6.2](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.2) | **パッケージ名を `com.example.pomodoro` → `com.warasugi.pomotimer` に変更**（旧バージョンからの自動更新は不可。アンインストール後に再インストールが必要）・作業時間の上限を 60 分に調整 |
+| [v1.6.1](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.1) | ホーム画面ウィジェットからタイマーを開始すると残り時間が進まない不具合を修正 |
+| [v1.6.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.0) | Discord RPC 連携・ホーム画面ウィジェット・ポモドーロサイクル設定強化（自動開始・範囲拡張）・統計強化（期間別サマリ・最長集中時間・曜日別グラフ）・タスク名記録・クレジット画面の情報ハブ化 |
 | [v1.5.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.5.0) | タイマー画面 UI/UX 刷新（JetBrains Mono 表示・呼吸するリング・サイクルドット）・ログ画面に Vico グラフと累計サマリーを追加・アプリ内 DL → インストールでのアップデート対応 |
 | [v1.4.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.4.0) | Discord・btop・Catppuccin テーマ追加・起動時アップデート通知・著名を pomotimer.warasugi.com に統一・**APK 署名修正**（v1.3.1 以前から更新する場合はアンインストール後に再インストールが必要です） |
 | [v1.3.1](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.3.1) | ロック画面への通知表示・設定画面にクレジット追加 |
@@ -135,10 +148,14 @@ app/src/main/java/com/example/pomodoro/
 │   ├── TimerScreen.kt        # タイマー画面
 │   ├── WorkLogScreen.kt      # 作業ログ画面（サマリー + グラフ）
 │   ├── StatsChart.kt         # Vico 製の日別ポモドーロ棒グラフ
-│   └── SettingsScreen.kt     # 設定画面
+│   ├── SettingsScreen.kt     # 設定画面
+│   └── widget/
+│       ├── PomotimerWidget.kt         # Jetpack Glance ホーム画面ウィジェット
+│       └── PomotimerWidgetReceiver.kt
 ├── util/
 │   ├── UpdateChecker.kt      # GitHub Releases から最新版・APK URL を取得
-│   └── ApkInstaller.kt       # APK ダウンロード + インストール起動
+│   ├── ApkInstaller.kt       # APK ダウンロード + インストール起動
+│   └── DiscordRpcReporter.kt # Waras-discordRPC ブリッジへの presence 送信
 ├── viewmodel/
 │   └── TimerViewModel.kt     # ViewModel（サービス委譲 + DataStore + 統計）
 └── MainActivity.kt

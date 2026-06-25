@@ -150,7 +150,7 @@ fun TimerScreen(
                     value = uiState.preferredWorkDurationMinutes,
                     onValueChange = onSetWorkDuration,
                     color = MaterialTheme.colorScheme.primary,
-                    range = 1f..180f
+                    range = 1f..60f
                 )
                 QuickDurationSlider(
                     label = "休憩",
