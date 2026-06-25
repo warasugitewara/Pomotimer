@@ -57,7 +57,7 @@ class TimerService : LifecycleService() {
         private val _uiState = MutableStateFlow(TimerState())
         val uiState: StateFlow<TimerState> = _uiState.asStateFlow()
 
-        fun startTimer(ctx: Context)       = ctx.startService(svc(ctx, ACTION_START))
+        fun startTimer(ctx: Context)       = androidx.core.content.ContextCompat.startForegroundService(ctx, svc(ctx, ACTION_START))
         fun pauseTimer(ctx: Context)       = ctx.startService(svc(ctx, ACTION_PAUSE))
         fun stopService(ctx: Context)      = ctx.startService(svc(ctx, ACTION_STOP))
         fun resetTimer(ctx: Context)       = ctx.startService(svc(ctx, ACTION_RESET))
