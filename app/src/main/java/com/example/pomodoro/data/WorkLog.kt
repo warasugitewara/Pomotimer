@@ -11,5 +11,6 @@ data class WorkLog(
     val plannedSeconds: Long,
     val actualSeconds: Long,
     val completed: Boolean,
-    val lapNumber: Int
+    val lapNumber: Int,
+    val taskName: String? = null
 )

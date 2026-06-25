@@ -47,6 +47,7 @@ class TimerService : LifecycleService() {
         const val ACTION_SET_BREAK          = "com.example.pomodoro.SET_BREAK"
         const val ACTION_SET_LONG_BREAK     = "com.example.pomodoro.SET_LONG_BREAK"
         const val ACTION_SET_LB_INTERVAL    = "com.example.pomodoro.SET_LB_INTERVAL"
+        const val ACTION_SET_TASK_NAME      = "com.example.pomodoro.SET_TASK_NAME"
 
         const val CHANNEL_TIMER  = "timer_progress"
         const val CHANNEL_ALERT  = "timer_alert"
@@ -69,6 +70,8 @@ class TimerService : LifecycleService() {
             ctx.startService(svc(ctx, ACTION_SET_LONG_BREAK).putExtra("minutes", minutes))
         fun setLongBreakInterval(ctx: Context, count: Int) =
             ctx.startService(svc(ctx, ACTION_SET_LB_INTERVAL).putExtra("count", count))
+        fun setTaskName(ctx: Context, taskName: String?) =
+            ctx.startService(svc(ctx, ACTION_SET_TASK_NAME).putExtra("taskName", taskName))
 
         private fun svc(ctx: Context, action: String) =
             Intent(ctx, TimerService::class.java).apply { this.action = action }
@@ -103,6 +106,7 @@ class TimerService : LifecycleService() {
             ACTION_SET_BREAK       -> setBreakDuration(intent.getIntExtra("minutes", 5))
             ACTION_SET_LONG_BREAK  -> _uiState.update { it.copy(preferredLongBreakDurationMinutes = intent.getIntExtra("minutes", 15)) }
             ACTION_SET_LB_INTERVAL -> _uiState.update { it.copy(longBreakInterval = intent.getIntExtra("count", 4)) }
+            ACTION_SET_TASK_NAME   -> _uiState.update { it.copy(currentTaskName = intent.getStringExtra("taskName")) }
         }
         return START_STICKY
     }
@@ -211,7 +215,8 @@ class TimerService : LifecycleService() {
                 plannedSeconds = state.totalSeconds,
                 actualSeconds  = actual,
                 completed      = true,
-                lapNumber      = state.currentLap
+                lapNumber      = state.currentLap,
+                taskName       = if (wasWork) state.currentTaskName else null
             ))
         }
 

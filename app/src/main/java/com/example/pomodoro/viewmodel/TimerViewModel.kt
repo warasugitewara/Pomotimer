@@ -126,6 +126,7 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
     fun setBreakDuration(minutes: Int)     = TimerService.setBreakDuration(getApplication(), minutes)
     fun setLongBreakDuration(minutes: Int) = TimerService.setLongBreakDuration(getApplication(), minutes)
     fun setLongBreakInterval(count: Int)   = TimerService.setLongBreakInterval(getApplication(), count)
+    fun setTaskName(taskName: String?)     = TimerService.setTaskName(getApplication(), taskName)
 
     // ───── 設定 ─────
 

@@ -411,7 +411,11 @@ private fun LogItem(log: WorkLog, onDelete: () -> Unit) {
     ListItem(
         headlineContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(if (isWork) "Work Session" else "Break Session", fontWeight = FontWeight.SemiBold)
+                Text(
+                    log.taskName?.takeIf { it.isNotBlank() }
+                        ?: if (isWork) "Work Session" else "Break Session",
+                    fontWeight = FontWeight.SemiBold
+                )
                 if (!log.completed) {
                     Spacer(Modifier.width(8.dp))
                     Surface(color = MaterialTheme.colorScheme.errorContainer, shape = CircleShape) {

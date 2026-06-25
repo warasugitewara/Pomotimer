@@ -14,5 +14,6 @@ data class TimerState(
     val preferredWorkDurationMinutes: Int = 25,
     val preferredBreakDurationMinutes: Int = 5,
     val preferredLongBreakDurationMinutes: Int = 15,
-    val longBreakInterval: Int = 4
+    val longBreakInterval: Int = 4,
+    val currentTaskName: String? = null
 )

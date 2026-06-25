@@ -99,7 +99,7 @@ object DiscordRpcReporter {
 
         val modeLabel = when {
             state.isAlarmPlaying -> "⏰ Time's up"
-            state.isWorkMode     -> "🍅 Focusing"
+            state.isWorkMode     -> state.currentTaskName?.let { "🍅 $it" } ?: "🍅 Focusing"
             state.isLongBreak    -> "🌴 Long Break"
             else                  -> "☕ Short Break"
         }

@@ -32,7 +32,8 @@ fun TimerScreen(
     onSetWorkDuration: (Int) -> Unit,
     onSetBreakDuration: (Int) -> Unit,
     onSetLongBreakDuration: (Int) -> Unit,
-    onSetLongBreakInterval: (Int) -> Unit
+    onSetLongBreakInterval: (Int) -> Unit,
+    onSetTaskName: (String?) -> Unit
 ) {
     val (modeText, modeColor) = when {
         uiState.isWorkMode  -> "FOCUS"  to MaterialTheme.colorScheme.primary
@@ -73,6 +74,16 @@ fun TimerScreen(
         }
 
         Spacer(Modifier.height(24.dp))
+
+        // ── タスク名（作業開始前のみ編集可） ────────────────
+        if (uiState.isWorkMode) {
+            TaskNameField(
+                value = uiState.currentTaskName ?: "",
+                enabled = !uiState.isRunning,
+                onValueChange = { onSetTaskName(it.ifBlank { null }) }
+            )
+            Spacer(Modifier.height(16.dp))
+        }
 
         // ── 円形タイマー ──────────────────────────────────
         TimerRing(uiState = uiState, modeText = modeText, modeColor = modeColor)
@@ -293,4 +304,18 @@ fun QuickDurationSlider(
             )
         )
     }
+}
+
+@Composable
+private fun TaskNameField(value: String, enabled: Boolean, onValueChange: (String) -> Unit) {
+    var draft by remember(value) { mutableStateOf(value) }
+    OutlinedTextField(
+        value = draft,
+        onValueChange = { draft = it; onValueChange(it) },
+        enabled = enabled,
+        label = { Text("タスク（任意）") },
+        placeholder = { Text("例: 数学の勉強") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(0.85f)
+    )
 }

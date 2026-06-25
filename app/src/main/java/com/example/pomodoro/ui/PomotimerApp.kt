@@ -144,7 +144,8 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
                         onSetWorkDuration      = vm::setWorkDuration,
                         onSetBreakDuration     = vm::setBreakDuration,
                         onSetLongBreakDuration = vm::setLongBreakDuration,
-                        onSetLongBreakInterval = vm::setLongBreakInterval
+                        onSetLongBreakInterval = vm::setLongBreakInterval,
+                        onSetTaskName          = vm::setTaskName
                     )
                 }
 
