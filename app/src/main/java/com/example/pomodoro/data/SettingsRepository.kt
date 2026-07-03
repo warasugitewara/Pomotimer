@@ -23,7 +23,9 @@ class SettingsRepository(private val context: Context) {
         val CUSTOM_TEXT_COLOR     = stringPreferencesKey("custom_text_color")
         val CUSTOM_ACCENT_COLOR   = stringPreferencesKey("custom_accent_color")
         val DISCORD_RPC_ENABLED   = booleanPreferencesKey("discord_rpc_enabled")
-        val DISCORD_BRIDGE_URL    = stringPreferencesKey("discord_bridge_url")
+        val DISCORD_BRIDGE_HOST   = stringPreferencesKey("discord_bridge_host")
+        val DISCORD_BRIDGE_PORT   = stringPreferencesKey("discord_bridge_port")
+        val DISCORD_BRIDGE_HTTPS  = booleanPreferencesKey("discord_bridge_https")
         val DISCORD_BRIDGE_TOKEN  = stringPreferencesKey("discord_bridge_token")
         val AUTO_START_BREAK      = booleanPreferencesKey("auto_start_break")
         val AUTO_START_WORK       = booleanPreferencesKey("auto_start_work")
@@ -37,7 +39,9 @@ class SettingsRepository(private val context: Context) {
     val customTextColor:     Flow<String>  = context.dataStore.data.map { it[CUSTOM_TEXT_COLOR]     ?: "#212121" }
     val customAccentColor:   Flow<String>  = context.dataStore.data.map { it[CUSTOM_ACCENT_COLOR]   ?: "#E53935" }
     val discordRpcEnabled:   Flow<Boolean> = context.dataStore.data.map { it[DISCORD_RPC_ENABLED]   ?: false }
-    val discordBridgeUrl:    Flow<String>  = context.dataStore.data.map { it[DISCORD_BRIDGE_URL]    ?: "" }
+    val discordBridgeHost:   Flow<String>  = context.dataStore.data.map { it[DISCORD_BRIDGE_HOST]   ?: "" }
+    val discordBridgePort:   Flow<String>  = context.dataStore.data.map { it[DISCORD_BRIDGE_PORT]   ?: "" }
+    val discordBridgeHttps:  Flow<Boolean> = context.dataStore.data.map { it[DISCORD_BRIDGE_HTTPS]  ?: false }
     val discordBridgeToken:  Flow<String>  = context.dataStore.data.map { it[DISCORD_BRIDGE_TOKEN]  ?: "" }
     val autoStartBreak:      Flow<Boolean> = context.dataStore.data.map { it[AUTO_START_BREAK]      ?: false }
     val autoStartWork:       Flow<Boolean> = context.dataStore.data.map { it[AUTO_START_WORK]       ?: false }
@@ -50,7 +54,9 @@ class SettingsRepository(private val context: Context) {
     suspend fun setCustomTextColor(v: String)      = context.dataStore.edit { it[CUSTOM_TEXT_COLOR]     = v }
     suspend fun setCustomAccentColor(v: String)    = context.dataStore.edit { it[CUSTOM_ACCENT_COLOR]   = v }
     suspend fun setDiscordRpcEnabled(v: Boolean)   = context.dataStore.edit { it[DISCORD_RPC_ENABLED]   = v }
-    suspend fun setDiscordBridgeUrl(v: String)     = context.dataStore.edit { it[DISCORD_BRIDGE_URL]    = v }
+    suspend fun setDiscordBridgeHost(v: String)    = context.dataStore.edit { it[DISCORD_BRIDGE_HOST]   = v }
+    suspend fun setDiscordBridgePort(v: String)    = context.dataStore.edit { it[DISCORD_BRIDGE_PORT]   = v }
+    suspend fun setDiscordBridgeHttps(v: Boolean)  = context.dataStore.edit { it[DISCORD_BRIDGE_HTTPS]  = v }
     suspend fun setDiscordBridgeToken(v: String)   = context.dataStore.edit { it[DISCORD_BRIDGE_TOKEN]  = v }
     suspend fun setAutoStartBreak(v: Boolean)      = context.dataStore.edit { it[AUTO_START_BREAK]      = v }
     suspend fun setAutoStartWork(v: Boolean)       = context.dataStore.edit { it[AUTO_START_WORK]       = v }

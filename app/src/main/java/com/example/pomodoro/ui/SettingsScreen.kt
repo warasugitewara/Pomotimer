@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pomodoro.ui.theme.AppTheme
 import com.example.pomodoro.ui.theme.parseHexColor
+import com.example.pomodoro.util.DiscordRpcReporter
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,7 +40,9 @@ fun SettingsScreen(
     customText: String,
     customAccent: String,
     discordRpcEnabled: Boolean,
-    discordBridgeUrl: String,
+    discordBridgeHost: String,
+    discordBridgePort: String,
+    discordBridgeHttps: Boolean,
     discordBridgeToken: String,
     connectionTestResult: Boolean?,
     autoStartBreak: Boolean,
@@ -52,9 +55,11 @@ fun SettingsScreen(
     onCustomTextChange: (String) -> Unit,
     onCustomAccentChange: (String) -> Unit,
     onDiscordRpcToggle: (Boolean) -> Unit,
-    onDiscordBridgeUrlChange: (String) -> Unit,
+    onDiscordBridgeHostChange: (String) -> Unit,
+    onDiscordBridgePortChange: (String) -> Unit,
+    onDiscordBridgeHttpsToggle: (Boolean) -> Unit,
     onDiscordBridgeTokenChange: (String) -> Unit,
-    onTestDiscordConnection: (String, String) -> Unit,
+    onTestDiscordConnection: (String, String, Boolean, String) -> Unit,
     onAutoStartBreakToggle: (Boolean) -> Unit,
     onAutoStartWorkToggle: (Boolean) -> Unit
 ) {
@@ -127,10 +132,14 @@ fun SettingsScreen(
             )
             if (discordRpcEnabled) {
                 DiscordRpcConfig(
-                    bridgeUrl = discordBridgeUrl,
+                    host = discordBridgeHost,
+                    port = discordBridgePort,
+                    useHttps = discordBridgeHttps,
                     token = discordBridgeToken,
                     connectionTestResult = connectionTestResult,
-                    onBridgeUrlChange = onDiscordBridgeUrlChange,
+                    onHostChange = onDiscordBridgeHostChange,
+                    onPortChange = onDiscordBridgePortChange,
+                    onHttpsToggle = onDiscordBridgeHttpsToggle,
                     onTokenChange = onDiscordBridgeTokenChange,
                     onTestConnection = onTestDiscordConnection
                 )
@@ -307,14 +316,19 @@ private fun ThemeColorCircle(
 
 @Composable
 private fun DiscordRpcConfig(
-    bridgeUrl: String,
+    host: String,
+    port: String,
+    useHttps: Boolean,
     token: String,
     connectionTestResult: Boolean?,
-    onBridgeUrlChange: (String) -> Unit,
+    onHostChange: (String) -> Unit,
+    onPortChange: (String) -> Unit,
+    onHttpsToggle: (Boolean) -> Unit,
     onTokenChange: (String) -> Unit,
-    onTestConnection: (String, String) -> Unit
+    onTestConnection: (String, String, Boolean, String) -> Unit
 ) {
-    var urlDraft by remember(bridgeUrl) { mutableStateOf(bridgeUrl) }
+    var hostDraft by remember(host) { mutableStateOf(host) }
+    var portDraft by remember(port) { mutableStateOf(port) }
     var tokenDraft by remember(token) { mutableStateOf(token) }
     var tokenVisible by remember { mutableStateOf(false) }
 
@@ -322,16 +336,48 @@ private fun DiscordRpcConfig(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        OutlinedTextField(
-            value = urlDraft,
-            onValueChange = { urlDraft = it; onBridgeUrlChange(it) },
-            label = { Text("Bridge URL") },
-            placeholder = { Text("https://xxxx") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-            modifier = Modifier.fillMaxWidth(),
-            textStyle = MaterialTheme.typography.bodySmall
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = hostDraft,
+                onValueChange = { hostDraft = it; onHostChange(it) },
+                label = { Text("IPアドレス / ホスト名") },
+                placeholder = { Text("例: 192.168.1.10") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                modifier = Modifier.weight(1.6f),
+                textStyle = MaterialTheme.typography.bodySmall
+            )
+            OutlinedTextField(
+                value = portDraft,
+                onValueChange = { v -> if (v.all { it.isDigit() } && v.length <= 5) { portDraft = v; onPortChange(v) } },
+                label = { Text("ポート") },
+                placeholder = { Text("8765") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.weight(1f),
+                textStyle = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("HTTPS", style = MaterialTheme.typography.bodySmall)
+            Switch(checked = useHttps, onCheckedChange = onHttpsToggle)
+            Text(
+                text = "自宅LAN/Twingateのみで使うなら通常OFF",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        val previewUrl = remember(hostDraft, portDraft, useHttps) {
+            DiscordRpcReporter.buildBridgeUrl(hostDraft, portDraft, useHttps)
+        }
+        Text(
+            text = "接続先: ${previewUrl ?: "IPアドレスを入力してください"}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
         )
+
         OutlinedTextField(
             value = tokenDraft,
             onValueChange = { tokenDraft = it; onTokenChange(it) },
@@ -352,8 +398,8 @@ private fun DiscordRpcConfig(
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(
-                onClick = { onTestConnection(urlDraft, tokenDraft) },
-                enabled = urlDraft.isNotBlank() && tokenDraft.isNotBlank()
+                onClick = { onTestConnection(hostDraft, portDraft, useHttps, tokenDraft) },
+                enabled = hostDraft.isNotBlank() && tokenDraft.isNotBlank()
             ) { Text("接続テスト") }
 
             when (connectionTestResult) {

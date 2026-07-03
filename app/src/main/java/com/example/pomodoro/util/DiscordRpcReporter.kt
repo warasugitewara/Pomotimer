@@ -31,9 +31,9 @@ object DiscordRpcReporter {
     fun notifyState(settings: SettingsRepository, state: TimerState, force: Boolean = false) {
         scope.launch {
             if (!settings.discordRpcEnabled.first()) return@launch
-            val url = settings.discordBridgeUrl.first()
+            val url = buildBridgeUrl(settings) ?: return@launch
             val token = settings.discordBridgeToken.first()
-            if (url.isBlank() || token.isBlank()) return@launch
+            if (token.isBlank()) return@launch
 
             val signature = "${state.isRunning}-${state.isWorkMode}-${state.isLongBreak}-${state.isAlarmPlaying}"
             val now = System.currentTimeMillis()
@@ -62,9 +62,9 @@ object DiscordRpcReporter {
     fun notifyClear(settings: SettingsRepository) {
         scope.launch {
             if (!settings.discordRpcEnabled.first()) return@launch
-            val url = settings.discordBridgeUrl.first()
+            val url = buildBridgeUrl(settings) ?: return@launch
             val token = settings.discordBridgeToken.first()
-            if (url.isBlank() || token.isBlank()) return@launch
+            if (token.isBlank()) return@launch
 
             val payload = JSONObject().apply { put("source_id", SOURCE_ID) }
             if (postJson(url, token, "/clear", payload)) {
@@ -75,9 +75,10 @@ object DiscordRpcReporter {
     }
 
     /** 設定画面の「接続テスト」用。GET /health の成否を返す。 */
-    suspend fun testConnection(bridgeUrl: String, token: String): Boolean {
+    suspend fun testConnection(host: String, port: String, useHttps: Boolean, token: String): Boolean {
+        val url = buildBridgeUrl(host, port, useHttps) ?: return false
         return try {
-            val conn = URL(joinUrl(bridgeUrl, "/health")).openConnection() as HttpURLConnection
+            val conn = URL(joinUrl(url, "/health")).openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
             conn.setRequestProperty("Authorization", "Bearer $token")
             conn.connectTimeout = 8_000
@@ -89,6 +90,21 @@ object DiscordRpcReporter {
         } catch (_: Exception) {
             false
         }
+    }
+
+    private suspend fun buildBridgeUrl(settings: SettingsRepository): String? {
+        val host = settings.discordBridgeHost.first()
+        val port = settings.discordBridgePort.first()
+        val https = settings.discordBridgeHttps.first()
+        return buildBridgeUrl(host, port, https)
+    }
+
+    /** host（IPまたはホスト名）・port・httpsフラグから "http(s)://host:port" を組み立てる。host未設定はnull。 */
+    fun buildBridgeUrl(host: String, port: String, useHttps: Boolean): String? {
+        if (host.isBlank()) return null
+        val scheme = if (useHttps) "https" else "http"
+        val portPart = if (port.isBlank()) "" else ":$port"
+        return "$scheme://$host$portPart"
     }
 
     private fun presenceText(state: TimerState): Pair<String, String> {

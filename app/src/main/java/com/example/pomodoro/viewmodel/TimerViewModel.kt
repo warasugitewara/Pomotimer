@@ -143,7 +143,9 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
     // ───── Discord RPC連携 ─────
 
     val discordRpcEnabled  = settings.discordRpcEnabled
-    val discordBridgeUrl   = settings.discordBridgeUrl
+    val discordBridgeHost  = settings.discordBridgeHost
+    val discordBridgePort  = settings.discordBridgePort
+    val discordBridgeHttps = settings.discordBridgeHttps
     val discordBridgeToken = settings.discordBridgeToken
 
     // ───── サイクル自動開始 ─────
@@ -152,17 +154,19 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
     val autoStartWork  = settings.autoStartWork
 
     fun setDiscordRpcEnabled(v: Boolean)  = viewModelScope.launch { settings.setDiscordRpcEnabled(v) }
-    fun setDiscordBridgeUrl(v: String)    = viewModelScope.launch { settings.setDiscordBridgeUrl(v) }
+    fun setDiscordBridgeHost(v: String)   = viewModelScope.launch { settings.setDiscordBridgeHost(v) }
+    fun setDiscordBridgePort(v: String)   = viewModelScope.launch { settings.setDiscordBridgePort(v) }
+    fun setDiscordBridgeHttps(v: Boolean) = viewModelScope.launch { settings.setDiscordBridgeHttps(v) }
     fun setDiscordBridgeToken(v: String)  = viewModelScope.launch { settings.setDiscordBridgeToken(v) }
 
     private val _connectionTestResult = MutableStateFlow<Boolean?>(null)
     /** 接続テストの結果。null=未実行、true=成功、false=失敗。 */
     val connectionTestResult: StateFlow<Boolean?> = _connectionTestResult.asStateFlow()
 
-    fun testDiscordConnection(url: String, token: String) {
+    fun testDiscordConnection(host: String, port: String, useHttps: Boolean, token: String) {
         viewModelScope.launch {
             _connectionTestResult.value = null
-            _connectionTestResult.value = DiscordRpcReporter.testConnection(url, token)
+            _connectionTestResult.value = DiscordRpcReporter.testConnection(host, port, useHttps, token)
         }
     }
 }

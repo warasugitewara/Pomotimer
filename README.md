@@ -32,7 +32,7 @@
 
 ### 🎮 Discord RPC連携
 - [Waras-discordRPC](https://github.com/warasugitewara/Waras-discordRPC) ブリッジと連携し、タイマー状態を Discord のステータスに表示
-- 設定画面で ON/OFF・Bridge URL・Token・接続テストを設定可能
+- 設定画面で ON/OFF・IPアドレス/ポート/HTTPS・Token・接続テストを設定可能
 
 ### 📱 ホーム画面ウィジェット
 - 残り時間・現在モードの確認、開始 / 一時停止 / リセット操作をアプリを開かずに実行（Jetpack Glance 製）
@@ -100,6 +100,7 @@
 |-----------|----------|
 | [v1.6.2](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.2) | **パッケージ名を `com.example.pomodoro` → `com.warasugi.pomotimer` に変更**（旧バージョンからの自動更新は不可。アンインストール後に再インストールが必要）・作業時間の上限を 60 分に調整 |
 | [v1.6.1](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.1) | ホーム画面ウィジェットからタイマーを開始すると残り時間が進まない不具合を修正 |
+| [v1.6.3](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.3) | Discord RPC 連携が平文HTTP通信をブロックされ接続できない不具合を修正（`usesCleartextTraffic`追加）。設定画面のBridge設定をIPアドレス/ポート/HTTPSの分離入力に変更し、接続先をわかりやすく表示 |
 | [v1.6.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.0) | Discord RPC 連携・ホーム画面ウィジェット・ポモドーロサイクル設定強化（自動開始・範囲拡張）・統計強化（期間別サマリ・最長集中時間・曜日別グラフ）・タスク名記録・クレジット画面の情報ハブ化 |
 | [v1.5.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.5.0) | タイマー画面 UI/UX 刷新（JetBrains Mono 表示・呼吸するリング・サイクルドット）・ログ画面に Vico グラフと累計サマリーを追加・アプリ内 DL → インストールでのアップデート対応 |
 | [v1.4.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.4.0) | Discord・btop・Catppuccin テーマ追加・起動時アップデート通知・著名を pomotimer.warasugi.com に統一・**APK 署名修正**（v1.3.1 以前から更新する場合はアンインストール後に再インストールが必要です） |

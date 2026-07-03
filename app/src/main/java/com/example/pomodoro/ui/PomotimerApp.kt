@@ -61,7 +61,9 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
     val customAccent  by vm.settings.customAccentColor.collectAsStateWithLifecycle("#E53935")
 
     val discordRpcEnabled  by vm.discordRpcEnabled.collectAsStateWithLifecycle(false)
-    val discordBridgeUrl   by vm.discordBridgeUrl.collectAsStateWithLifecycle("")
+    val discordBridgeHost  by vm.discordBridgeHost.collectAsStateWithLifecycle("")
+    val discordBridgePort  by vm.discordBridgePort.collectAsStateWithLifecycle("")
+    val discordBridgeHttps by vm.discordBridgeHttps.collectAsStateWithLifecycle(false)
     val discordBridgeToken by vm.discordBridgeToken.collectAsStateWithLifecycle("")
     val connectionTestResult by vm.connectionTestResult.collectAsStateWithLifecycle(null)
     val autoStartBreak by vm.autoStartBreak.collectAsStateWithLifecycle(false)
@@ -194,11 +196,15 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
                         onCustomTextChange   = vm::setCustomTextColor,
                         onCustomAccentChange = vm::setCustomAccentColor,
                         discordRpcEnabled       = discordRpcEnabled,
-                        discordBridgeUrl        = discordBridgeUrl,
+                        discordBridgeHost       = discordBridgeHost,
+                        discordBridgePort       = discordBridgePort,
+                        discordBridgeHttps      = discordBridgeHttps,
                         discordBridgeToken      = discordBridgeToken,
                         connectionTestResult    = connectionTestResult,
                         onDiscordRpcToggle          = vm::setDiscordRpcEnabled,
-                        onDiscordBridgeUrlChange    = vm::setDiscordBridgeUrl,
+                        onDiscordBridgeHostChange   = vm::setDiscordBridgeHost,
+                        onDiscordBridgePortChange   = vm::setDiscordBridgePort,
+                        onDiscordBridgeHttpsToggle  = vm::setDiscordBridgeHttps,
                         onDiscordBridgeTokenChange  = vm::setDiscordBridgeToken,
                         onTestDiscordConnection     = vm::testDiscordConnection,
                         autoStartBreak              = autoStartBreak,
