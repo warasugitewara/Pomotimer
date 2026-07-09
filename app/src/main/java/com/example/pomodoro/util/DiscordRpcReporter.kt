@@ -15,6 +15,9 @@ private const val SOURCE_ID = "pomotimer-android"
 private const val SOURCE_NAME = "Pomotimer"
 private const val MIN_INTERVAL_MILLIS = 15_000L
 
+/** 接続テストの結果。経路の問題(UNREACHABLE)とトークンの問題(AUTH_FAILED)を区別する。 */
+enum class ConnectionTestResult { SUCCESS, AUTH_FAILED, UNREACHABLE }
+
 /**
  * Waras-discordRPC ブリッジ（docs/PROTOCOL.md）への presence 送信。
  * ベストエフォート：失敗は無視し、タイマー動作に影響を与えない。
@@ -74,9 +77,9 @@ object DiscordRpcReporter {
         }
     }
 
-    /** 設定画面の「接続テスト」用。GET /health の成否を返す。 */
-    suspend fun testConnection(host: String, port: String, useHttps: Boolean, token: String): Boolean {
-        val url = buildBridgeUrl(host, port, useHttps) ?: return false
+    /** 設定画面の「接続テスト」用。GET /health を叩き、経路と認証を切り分けた結果を返す。 */
+    suspend fun testConnection(host: String, port: String, useHttps: Boolean, token: String): ConnectionTestResult {
+        val url = buildBridgeUrl(host, port, useHttps) ?: return ConnectionTestResult.UNREACHABLE
         return try {
             val conn = URL(joinUrl(url, "/health")).openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
@@ -84,11 +87,15 @@ object DiscordRpcReporter {
             conn.connectTimeout = 8_000
             conn.readTimeout = 8_000
             conn.connect()
-            val ok = conn.responseCode in 200..299
+            val code = conn.responseCode
             conn.disconnect()
-            ok
+            when (code) {
+                in 200..299 -> ConnectionTestResult.SUCCESS
+                401, 403 -> ConnectionTestResult.AUTH_FAILED // 経路は届いているがトークン不一致
+                else -> ConnectionTestResult.UNREACHABLE
+            }
         } catch (_: Exception) {
-            false
+            ConnectionTestResult.UNREACHABLE
         }
     }
 
@@ -101,10 +108,28 @@ object DiscordRpcReporter {
 
     /** host（IPまたはホスト名）・port・httpsフラグから "http(s)://host:port" を組み立てる。host未設定はnull。 */
     fun buildBridgeUrl(host: String, port: String, useHttps: Boolean): String? {
-        if (host.isBlank()) return null
+        val cleanHost = sanitizeHost(host)
+        if (cleanHost.isBlank()) return null
         val scheme = if (useHttps) "https" else "http"
         val portPart = if (port.isBlank()) "" else ":$port"
-        return "$scheme://$host$portPart"
+        return "$scheme://$cleanHost$portPart"
+    }
+
+    /**
+     * ホスト入力の揺れを吸収する。"http://192.168.1.20/" のようにスキームや
+     * パス・ポートが混入していると "http://http://..." になり必ず接続失敗するため、
+     * ホスト名/IP だけを取り出す。
+     */
+    fun sanitizeHost(raw: String): String {
+        var h = raw.trim()
+        h = h.replace(Regex("^[a-zA-Z][a-zA-Z0-9+.-]*://"), "") // スキーム除去
+        h = h.substringBefore('/')                               // パス除去
+        h = when {
+            h.startsWith("[") -> h.substringBefore(']').removePrefix("[") // [IPv6]:port
+            h.count { it == ':' } == 1 -> h.substringBefore(':')          // host:port 形式のポート混入
+            else -> h                                                      // 生 IPv6 は温存
+        }
+        return h.trim()
     }
 
     private fun presenceText(state: TimerState): Pair<String, String> {

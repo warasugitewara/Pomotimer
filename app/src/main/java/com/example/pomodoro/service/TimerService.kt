@@ -92,6 +92,22 @@ class TimerService : LifecycleService() {
         settings = SettingsRepository(this)
         db = AppDatabase.getInstance(this)
         createNotificationChannels()
+        lifecycleScope.launch { rpcKeepaliveLoop() }
+    }
+
+    /**
+     * 一時停止中はタイマー tick が止まり presence 送信も止まるため、ブリッジ側の
+     * TTL(既定 30 秒)で Discord 表示が消えてしまう。セッションが生きている間は
+     * 20 秒ごとに再送して TTL を維持する(実行中の毎秒 tick 送信とは
+     * DiscordRpcReporter 側の最短 15 秒間隔制御で重複が吸収される)。
+     */
+    private suspend fun rpcKeepaliveLoop() {
+        while (true) {
+            delay(20_000L)
+            val s = _uiState.value
+            val sessionActive = s.isRunning || s.isAlarmPlaying || s.remainingSeconds != s.totalSeconds
+            if (sessionActive) DiscordRpcReporter.notifyState(settings, s)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
