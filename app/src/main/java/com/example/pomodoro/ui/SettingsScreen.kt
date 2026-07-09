@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pomodoro.ui.theme.AppTheme
 import com.example.pomodoro.ui.theme.parseHexColor
+import com.example.pomodoro.util.ConnectionTestResult
 import com.example.pomodoro.util.DiscordRpcReporter
 import kotlinx.coroutines.launch
 
@@ -44,7 +45,7 @@ fun SettingsScreen(
     discordBridgePort: String,
     discordBridgeHttps: Boolean,
     discordBridgeToken: String,
-    connectionTestResult: Boolean?,
+    connectionTestResult: ConnectionTestResult?,
     autoStartBreak: Boolean,
     autoStartWork: Boolean,
     onNotifToggle: (Boolean) -> Unit,
@@ -320,7 +321,7 @@ private fun DiscordRpcConfig(
     port: String,
     useHttps: Boolean,
     token: String,
-    connectionTestResult: Boolean?,
+    connectionTestResult: ConnectionTestResult?,
     onHostChange: (String) -> Unit,
     onPortChange: (String) -> Unit,
     onHttpsToggle: (Boolean) -> Unit,
@@ -403,9 +404,13 @@ private fun DiscordRpcConfig(
             ) { Text("接続テスト") }
 
             when (connectionTestResult) {
-                true  -> Text("✅ 接続成功", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
-                false -> Text("❌ 接続失敗", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium)
-                null  -> {}
+                ConnectionTestResult.SUCCESS ->
+                    Text("✅ 接続成功", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                ConnectionTestResult.AUTH_FAILED ->
+                    Text("❌ 認証失敗（Tokenを確認）", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium)
+                ConnectionTestResult.UNREACHABLE ->
+                    Text("❌ 到達できません（VPN/IP/ポート/PC側ファイアウォールを確認）", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium)
+                null -> {}
             }
         }
     }

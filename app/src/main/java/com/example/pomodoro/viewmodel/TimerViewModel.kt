@@ -8,6 +8,7 @@ import com.example.pomodoro.data.AppDatabase
 import com.example.pomodoro.data.SettingsRepository
 import com.example.pomodoro.model.TimerState
 import com.example.pomodoro.service.TimerService
+import com.example.pomodoro.util.ConnectionTestResult
 import com.example.pomodoro.util.DiscordRpcReporter
 import com.example.pomodoro.util.UpdateInfo
 import com.example.pomodoro.util.fetchLatestRelease
@@ -159,9 +160,9 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
     fun setDiscordBridgeHttps(v: Boolean) = viewModelScope.launch { settings.setDiscordBridgeHttps(v) }
     fun setDiscordBridgeToken(v: String)  = viewModelScope.launch { settings.setDiscordBridgeToken(v) }
 
-    private val _connectionTestResult = MutableStateFlow<Boolean?>(null)
-    /** 接続テストの結果。null=未実行、true=成功、false=失敗。 */
-    val connectionTestResult: StateFlow<Boolean?> = _connectionTestResult.asStateFlow()
+    private val _connectionTestResult = MutableStateFlow<ConnectionTestResult?>(null)
+    /** 接続テストの結果。null=未実行。経路の問題と認証の問題を区別して保持する。 */
+    val connectionTestResult: StateFlow<ConnectionTestResult?> = _connectionTestResult.asStateFlow()
 
     fun testDiscordConnection(host: String, port: String, useHttps: Boolean, token: String) {
         viewModelScope.launch {
