@@ -33,7 +33,10 @@ fun TimerScreen(
     onSetBreakDuration: (Int) -> Unit,
     onSetLongBreakDuration: (Int) -> Unit,
     onSetLongBreakInterval: (Int) -> Unit,
-    onSetTaskName: (String?) -> Unit
+    onSetTaskName: (String?) -> Unit,
+    taskNames: List<String>,
+    onAddTaskName: (String) -> Unit,
+    onRemoveTaskName: (String) -> Unit
 ) {
     val (modeText, modeColor) = when {
         uiState.isWorkMode  -> "FOCUS"  to MaterialTheme.colorScheme.primary
@@ -75,12 +78,15 @@ fun TimerScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        // ── タスク名（作業開始前のみ編集可） ────────────────
+        // ── タスク選択（作業開始前のみ変更可） ────────────────
         if (uiState.isWorkMode) {
-            TaskNameField(
-                value = uiState.currentTaskName ?: "",
-                enabled = !uiState.isRunning,
-                onValueChange = { onSetTaskName(it.ifBlank { null }) }
+            TaskSelector(
+                selected = uiState.currentTaskName,
+                options  = taskNames,
+                enabled  = !uiState.isRunning,
+                onSelect = onSetTaskName,
+                onAdd    = onAddTaskName,
+                onRemove = onRemoveTaskName
             )
             Spacer(Modifier.height(16.dp))
         }
@@ -306,16 +312,119 @@ fun QuickDurationSlider(
     }
 }
 
+/**
+ * 登録済みタスクからの選択式ドロップダウン。「タスクなし」も選択でき、
+ * メニュー内からプリセットの追加・削除ができる。作業実行中は変更不可。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TaskNameField(value: String, enabled: Boolean, onValueChange: (String) -> Unit) {
-    var draft by remember(value) { mutableStateOf(value) }
-    OutlinedTextField(
-        value = draft,
-        onValueChange = { draft = it; onValueChange(it) },
-        enabled = enabled,
-        label = { Text("タスク（任意）") },
-        placeholder = { Text("例: 数学の勉強") },
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(0.85f)
+private fun TaskSelector(
+    selected: String?,
+    options: List<String>,
+    enabled: Boolean,
+    onSelect: (String?) -> Unit,
+    onAdd: (String) -> Unit,
+    onRemove: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded && enabled,
+        onExpandedChange = { if (enabled) expanded = it }
+    ) {
+        OutlinedTextField(
+            value = selected ?: "タスクなし",
+            onValueChange = {},
+            readOnly = true,
+            enabled = enabled,
+            label = { Text("タスク（任意）") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded && enabled) },
+            singleLine = true,
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled)
+                .fillMaxWidth(0.85f)
+        )
+        ExposedDropdownMenu(
+            expanded = expanded && enabled,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("タスクなし") },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Check, contentDescription = null,
+                        tint = if (selected == null) MaterialTheme.colorScheme.primary else Color.Transparent
+                    )
+                },
+                onClick = { onSelect(null); expanded = false }
+            )
+            options.forEach { name ->
+                DropdownMenuItem(
+                    text = { Text(name) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Check, contentDescription = null,
+                            tint = if (selected == name) MaterialTheme.colorScheme.primary else Color.Transparent
+                        )
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            onRemove(name)
+                            if (selected == name) onSelect(null)
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "$name を削除",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    },
+                    onClick = { onSelect(name); expanded = false }
+                )
+            }
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text("新しいタスクを追加…") },
+                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                onClick = { expanded = false; showAddDialog = true }
+            )
+        }
+    }
+
+    if (showAddDialog) {
+        AddTaskDialog(
+            onConfirm = { name ->
+                onAdd(name)
+                onSelect(name)
+                showAddDialog = false
+            },
+            onDismiss = { showAddDialog = false }
+        )
+    }
+}
+
+@Composable
+private fun AddTaskDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+    var draft by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("タスクを追加") },
+        text = {
+            OutlinedTextField(
+                value = draft,
+                onValueChange = { draft = it },
+                label = { Text("タスク名") },
+                placeholder = { Text("例: 数学の勉強") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            Button(
+                enabled = draft.isNotBlank(),
+                onClick = { onConfirm(draft.trim()) }
+            ) { Text("追加") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("キャンセル") }
+        }
     )
 }

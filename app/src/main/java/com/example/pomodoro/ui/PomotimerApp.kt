@@ -68,6 +68,7 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
     val connectionTestResult by vm.connectionTestResult.collectAsStateWithLifecycle(null)
     val autoStartBreak by vm.autoStartBreak.collectAsStateWithLifecycle(false)
     val autoStartWork  by vm.autoStartWork.collectAsStateWithLifecycle(false)
+    val taskNames      by vm.taskNames.collectAsStateWithLifecycle(emptyList())
     val appTheme = AppTheme.entries.find { it.name == appThemeName } ?: AppTheme.LIGHT
 
     val updateInfo by vm.updateInfo.collectAsStateWithLifecycle(null)
@@ -147,7 +148,10 @@ fun PomotimerApp(vm: TimerViewModel = viewModel()) {
                         onSetBreakDuration     = vm::setBreakDuration,
                         onSetLongBreakDuration = vm::setLongBreakDuration,
                         onSetLongBreakInterval = vm::setLongBreakInterval,
-                        onSetTaskName          = vm::setTaskName
+                        onSetTaskName          = vm::setTaskName,
+                        taskNames              = taskNames,
+                        onAddTaskName          = vm::addTaskName,
+                        onRemoveTaskName       = vm::removeTaskName
                     )
                 }
 
