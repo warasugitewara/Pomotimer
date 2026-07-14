@@ -129,6 +129,12 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
     fun setLongBreakInterval(count: Int)   = TimerService.setLongBreakInterval(getApplication(), count)
     fun setTaskName(taskName: String?)     = TimerService.setTaskName(getApplication(), taskName)
 
+    // ───── タスク名プリセット ─────
+
+    val taskNames = settings.taskNames
+    fun addTaskName(name: String)    = viewModelScope.launch { settings.addTaskName(name) }
+    fun removeTaskName(name: String) = viewModelScope.launch { settings.removeTaskName(name) }
+
     // ───── 設定 ─────
 
     fun setNotificationEnabled(v: Boolean)  = viewModelScope.launch { settings.setNotificationEnabled(v) }

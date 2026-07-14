@@ -5,12 +5,30 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.pomodoro.model.TimerState
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
+/** タスク名リストの区切り文字（ユーザー入力に現れない制御文字）。 */
+private const val TASK_NAME_SEPARATOR = "\u001F"
+
+/**
+ * タイマー状態の永続化スナップショット。
+ * [endAtMillis] は実行中セッションの満了予定時刻（epoch ミリ秒、停止中は 0）。
+ * [sessionStartRemaining] はセッション開始時点の残り秒数（作業ログの実績計算用）。
+ */
+data class TimerSnapshot(
+    val state: TimerState,
+    val endAtMillis: Long,
+    val sessionStartRemaining: Long
+)
 
 class SettingsRepository(private val context: Context) {
 
@@ -29,6 +47,32 @@ class SettingsRepository(private val context: Context) {
         val DISCORD_BRIDGE_TOKEN  = stringPreferencesKey("discord_bridge_token")
         val AUTO_START_BREAK      = booleanPreferencesKey("auto_start_break")
         val AUTO_START_WORK       = booleanPreferencesKey("auto_start_work")
+        val TASK_NAMES            = stringPreferencesKey("task_names")
+
+        // ── タイマー状態スナップショット（プロセス再生成時の復元用） ──
+        val TIMER_TOTAL            = longPreferencesKey("timer_total_seconds")
+        val TIMER_REMAINING        = longPreferencesKey("timer_remaining_seconds")
+        val TIMER_RUNNING          = booleanPreferencesKey("timer_is_running")
+        val TIMER_IS_WORK          = booleanPreferencesKey("timer_is_work_mode")
+        val TIMER_IS_LONG_BREAK    = booleanPreferencesKey("timer_is_long_break")
+        val TIMER_LAP              = intPreferencesKey("timer_current_lap")
+        val TIMER_COMPLETED_LAPS   = intPreferencesKey("timer_completed_laps")
+        val TIMER_POMOS_IN_CYCLE   = intPreferencesKey("timer_pomos_in_cycle")
+        val TIMER_WORK_SECS_TODAY  = longPreferencesKey("timer_work_seconds_today")
+        val TIMER_PREF_WORK        = intPreferencesKey("timer_pref_work_minutes")
+        val TIMER_PREF_BREAK       = intPreferencesKey("timer_pref_break_minutes")
+        val TIMER_PREF_LONG_BREAK  = intPreferencesKey("timer_pref_long_break_minutes")
+        val TIMER_LB_INTERVAL      = intPreferencesKey("timer_long_break_interval")
+        val TIMER_TASK_NAME        = stringPreferencesKey("timer_task_name")
+        val TIMER_END_AT           = longPreferencesKey("timer_end_at_millis")
+        val TIMER_SESSION_START_REMAINING = longPreferencesKey("timer_session_start_remaining")
+
+        private val TIMER_KEYS = listOf(
+            TIMER_TOTAL, TIMER_REMAINING, TIMER_RUNNING, TIMER_IS_WORK, TIMER_IS_LONG_BREAK,
+            TIMER_LAP, TIMER_COMPLETED_LAPS, TIMER_POMOS_IN_CYCLE, TIMER_WORK_SECS_TODAY,
+            TIMER_PREF_WORK, TIMER_PREF_BREAK, TIMER_PREF_LONG_BREAK, TIMER_LB_INTERVAL,
+            TIMER_TASK_NAME, TIMER_END_AT, TIMER_SESSION_START_REMAINING
+        )
     }
 
     val notificationEnabled: Flow<Boolean> = context.dataStore.data.map { it[NOTIFICATION_ENABLED] ?: true }
@@ -60,4 +104,80 @@ class SettingsRepository(private val context: Context) {
     suspend fun setDiscordBridgeToken(v: String)   = context.dataStore.edit { it[DISCORD_BRIDGE_TOKEN]  = v }
     suspend fun setAutoStartBreak(v: Boolean)      = context.dataStore.edit { it[AUTO_START_BREAK]      = v }
     suspend fun setAutoStartWork(v: Boolean)       = context.dataStore.edit { it[AUTO_START_WORK]       = v }
+
+    // ───── タスク名プリセット ─────
+
+    val taskNames: Flow<List<String>> = context.dataStore.data.map { prefs ->
+        prefs[TASK_NAMES]?.split(TASK_NAME_SEPARATOR)?.filter { it.isNotBlank() } ?: emptyList()
+    }
+
+    suspend fun addTaskName(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        context.dataStore.edit { prefs ->
+            val current = prefs[TASK_NAMES]?.split(TASK_NAME_SEPARATOR)?.filter { it.isNotBlank() } ?: emptyList()
+            if (trimmed !in current) prefs[TASK_NAMES] = (current + trimmed).joinToString(TASK_NAME_SEPARATOR)
+        }
+    }
+
+    suspend fun removeTaskName(name: String) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[TASK_NAMES]?.split(TASK_NAME_SEPARATOR)?.filter { it.isNotBlank() } ?: return@edit
+            val next = current - name
+            if (next.isEmpty()) prefs.remove(TASK_NAMES) else prefs[TASK_NAMES] = next.joinToString(TASK_NAME_SEPARATOR)
+        }
+    }
+
+    // ───── タイマー状態スナップショット ─────
+
+    suspend fun saveTimerSnapshot(state: TimerState, endAtMillis: Long, sessionStartRemaining: Long) {
+        context.dataStore.edit { p ->
+            p[TIMER_TOTAL]           = state.totalSeconds
+            p[TIMER_REMAINING]       = state.remainingSeconds
+            p[TIMER_RUNNING]         = state.isRunning
+            p[TIMER_IS_WORK]         = state.isWorkMode
+            p[TIMER_IS_LONG_BREAK]   = state.isLongBreak
+            p[TIMER_LAP]             = state.currentLap
+            p[TIMER_COMPLETED_LAPS]  = state.completedLaps
+            p[TIMER_POMOS_IN_CYCLE]  = state.pomodorosInCycle
+            p[TIMER_WORK_SECS_TODAY] = state.totalWorkSecondsToday
+            p[TIMER_PREF_WORK]       = state.preferredWorkDurationMinutes
+            p[TIMER_PREF_BREAK]      = state.preferredBreakDurationMinutes
+            p[TIMER_PREF_LONG_BREAK] = state.preferredLongBreakDurationMinutes
+            p[TIMER_LB_INTERVAL]     = state.longBreakInterval
+            state.currentTaskName?.let { p[TIMER_TASK_NAME] = it } ?: p.remove(TIMER_TASK_NAME)
+            p[TIMER_END_AT]          = endAtMillis
+            p[TIMER_SESSION_START_REMAINING] = sessionStartRemaining
+        }
+    }
+
+    /** 保存済みスナップショットを読む。一度も保存されていなければ null。 */
+    suspend fun readTimerSnapshot(): TimerSnapshot? {
+        val p = context.dataStore.data.first()
+        val total = p[TIMER_TOTAL] ?: return null
+        return TimerSnapshot(
+            state = TimerState(
+                remainingSeconds  = p[TIMER_REMAINING] ?: total,
+                totalSeconds      = total,
+                isRunning         = p[TIMER_RUNNING] ?: false,
+                isWorkMode        = p[TIMER_IS_WORK] ?: true,
+                isLongBreak       = p[TIMER_IS_LONG_BREAK] ?: false,
+                currentLap        = p[TIMER_LAP] ?: 1,
+                completedLaps     = p[TIMER_COMPLETED_LAPS] ?: 0,
+                pomodorosInCycle  = p[TIMER_POMOS_IN_CYCLE] ?: 0,
+                totalWorkSecondsToday = p[TIMER_WORK_SECS_TODAY] ?: 0L,
+                preferredWorkDurationMinutes      = p[TIMER_PREF_WORK] ?: 25,
+                preferredBreakDurationMinutes     = p[TIMER_PREF_BREAK] ?: 5,
+                preferredLongBreakDurationMinutes = p[TIMER_PREF_LONG_BREAK] ?: 15,
+                longBreakInterval = p[TIMER_LB_INTERVAL] ?: 4,
+                currentTaskName   = p[TIMER_TASK_NAME]
+            ),
+            endAtMillis           = p[TIMER_END_AT] ?: 0L,
+            sessionStartRemaining = p[TIMER_SESSION_START_REMAINING] ?: (p[TIMER_REMAINING] ?: total)
+        )
+    }
+
+    suspend fun clearTimerSnapshot() {
+        context.dataStore.edit { p -> TIMER_KEYS.forEach { p.remove(it) } }
+    }
 }

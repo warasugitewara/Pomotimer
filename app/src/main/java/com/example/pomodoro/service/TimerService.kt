@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class TimerService : LifecycleService() {
 
@@ -92,7 +93,46 @@ class TimerService : LifecycleService() {
         settings = SettingsRepository(this)
         db = AppDatabase.getInstance(this)
         createNotificationChannels()
+        restorePersistedState()
         lifecycleScope.launch { rpcKeepaliveLoop() }
+    }
+
+    /**
+     * タイマー状態はプロセスのメモリ上にしか存在しないため、バックグラウンドで
+     * プロセスが回収されると（別アプリ閲覧中など）タイマーが初期状態に戻ってしまう。
+     * 節目ごとに保存したスナップショットから復元することでこれを防ぐ。
+     * 実行中だった場合は満了予定時刻から残り時間を再計算して継続、
+     * 停止中に満了していた場合はログ記録と次モードへの遷移だけを行う。
+     */
+    private fun restorePersistedState() {
+        // プロセスが生きたままのサービス再生成では companion の状態が残っているため何もしない
+        if (_uiState.value != TimerState()) return
+        // onStartCommand のアクションが復元前の状態に作用しないよう同期的に読む（小さなファイル1つ）
+        val snap = runBlocking { settings.readTimerSnapshot() } ?: return
+        sessionStartRemaining = snap.sessionStartRemaining
+        if (snap.state.isRunning) {
+            val remaining = (snap.endAtMillis - System.currentTimeMillis()) / 1000
+            if (remaining >= 1) {
+                _uiState.value = snap.state.copy(isRunning = false, remainingSeconds = remaining)
+                startTimer()
+                // startTimer は再開時点を開始点にするため、ログ実績が欠けないよう元の開始点へ戻す
+                sessionStartRemaining = snap.sessionStartRemaining
+                persistState()
+            } else {
+                _uiState.value = snap.state.copy(isRunning = false, remainingSeconds = 0)
+                onTimerFinished(fromRestore = true)
+            }
+        } else {
+            _uiState.value = snap.state
+        }
+    }
+
+    /** 現在状態を保存する。実行中は満了予定時刻も保存し、復元時に経過を再計算できるようにする。 */
+    private fun persistState() {
+        val s = _uiState.value.copy(isAlarmPlaying = false)
+        val endAt = if (s.isRunning) System.currentTimeMillis() + s.remainingSeconds * 1000L else 0L
+        val startRemaining = sessionStartRemaining
+        lifecycleScope.launch { settings.saveTimerSnapshot(s, endAt, startRemaining) }
     }
 
     /**
@@ -120,9 +160,9 @@ class TimerService : LifecycleService() {
             ACTION_STOP_ALARM      -> stopAlarm()
             ACTION_SET_WORK        -> setWorkDuration(intent.getIntExtra("minutes", 25))
             ACTION_SET_BREAK       -> setBreakDuration(intent.getIntExtra("minutes", 5))
-            ACTION_SET_LONG_BREAK  -> _uiState.update { it.copy(preferredLongBreakDurationMinutes = intent.getIntExtra("minutes", 15)) }
-            ACTION_SET_LB_INTERVAL -> _uiState.update { it.copy(longBreakInterval = intent.getIntExtra("count", 4)) }
-            ACTION_SET_TASK_NAME   -> _uiState.update { it.copy(currentTaskName = intent.getStringExtra("taskName")) }
+            ACTION_SET_LONG_BREAK  -> { _uiState.update { it.copy(preferredLongBreakDurationMinutes = intent.getIntExtra("minutes", 15)) }; persistState() }
+            ACTION_SET_LB_INTERVAL -> { _uiState.update { it.copy(longBreakInterval = intent.getIntExtra("count", 4)) }; persistState() }
+            ACTION_SET_TASK_NAME   -> { _uiState.update { it.copy(currentTaskName = intent.getStringExtra("taskName")) }; persistState() }
         }
         return START_STICKY
     }
@@ -141,9 +181,15 @@ class TimerService : LifecycleService() {
         sessionStartTime = System.currentTimeMillis()
         sessionStartRemaining = _uiState.value.remainingSeconds
         _uiState.update { it.copy(isRunning = true) }
+        persistState()
         reportRpc(force = true)
         lastTickTime = System.currentTimeMillis()
-        startForeground(NOTIF_ID_TIMER, buildTimerNotification())
+        try {
+            startForeground(NOTIF_ID_TIMER, buildTimerNotification())
+        } catch (_: Exception) {
+            // プロセス再生成直後などバックグラウンドからの FGS 昇格が拒否されても計測は続行する
+            notifManager.notify(NOTIF_ID_TIMER, buildTimerNotification())
+        }
         timerJob = lifecycleScope.launch {
             while (_uiState.value.remainingSeconds > 0) {
                 delay(500L)
@@ -166,6 +212,7 @@ class TimerService : LifecycleService() {
     private fun pauseTimer() {
         timerJob?.cancel()
         _uiState.update { it.copy(isRunning = false) }
+        persistState()
         reportRpc(force = true)
         notifManager.notify(NOTIF_ID_TIMER, buildTimerNotification())
     }
@@ -174,6 +221,7 @@ class TimerService : LifecycleService() {
         timerJob?.cancel()
         stopAlarm()
         _uiState.update { s -> s.copy(remainingSeconds = s.totalSeconds, isRunning = false) }
+        persistState()
         reportRpc(force = true)
         notifManager.notify(NOTIF_ID_TIMER, buildTimerNotification())
     }
@@ -185,20 +233,22 @@ class TimerService : LifecycleService() {
     }
 
     private fun setWorkDuration(minutes: Int) {
-        timerJob?.cancel()
         val secs = minutes * 60L
         _uiState.update { s ->
-            s.copy(
-                preferredWorkDurationMinutes = minutes,
-                totalSeconds = secs, remainingSeconds = secs,
-                isRunning = false, isWorkMode = true
-            )
+            // セッション未開始の作業モード表示中だけタイマーへ即時反映する。
+            // 進行中・一時停止中・休憩中は好みの値のみ更新し、次の作業セッションから適用する
+            // （以前はここで進行中タイマーを破棄していたため、意図しないリセットが起きていた）
+            val idleWork = s.isWorkMode && !s.isRunning && s.remainingSeconds == s.totalSeconds
+            if (idleWork) s.copy(preferredWorkDurationMinutes = minutes, totalSeconds = secs, remainingSeconds = secs)
+            else s.copy(preferredWorkDurationMinutes = minutes)
         }
+        persistState()
         notifManager.notify(NOTIF_ID_TIMER, buildTimerNotification())
     }
 
     private fun setBreakDuration(minutes: Int) {
         _uiState.update { it.copy(preferredBreakDurationMinutes = minutes) }
+        persistState()
     }
 
     private fun stopAll() {
@@ -206,6 +256,8 @@ class TimerService : LifecycleService() {
         stopAlarm()
         DiscordRpcReporter.notifyClear(settings)
         _uiState.value = TimerState()
+        // lifecycleScope は stopSelf で終了するため、消し漏れがないよう同期的に消す
+        runBlocking { settings.clearTimerSnapshot() }
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -220,7 +272,8 @@ class TimerService : LifecycleService() {
 
     // ────────────── Timer finished ──────────────
 
-    private fun onTimerFinished() {
+    /** [fromRestore] はプロセス停止中に満了していたセッションの復元処理。音・振動・自動開始は行わない。 */
+    private fun onTimerFinished(fromRestore: Boolean = false) {
         val state = _uiState.value
         val wasWork = state.isWorkMode
         val actual  = sessionStartRemaining - state.remainingSeconds
@@ -261,16 +314,18 @@ class TimerService : LifecycleService() {
                 pomodorosInCycle      = nextPomosInCycle
             )
         }
+        persistState()
         reportRpc(force = true)
 
         lifecycleScope.launch {
             val notifOn = settings.notificationEnabled.first()
             val soundOn = settings.soundEnabled.first()
             val vibOn   = settings.vibrationEnabled.first()
-            val autoStart = if (nextIsWork) settings.autoStartWork.first() else settings.autoStartBreak.first()
+            val autoStart = !fromRestore &&
+                (if (nextIsWork) settings.autoStartWork.first() else settings.autoStartBreak.first())
 
-            if (soundOn)  playAlarmSound()
-            if (vibOn)    vibrate()
+            if (!fromRestore && soundOn) playAlarmSound()
+            if (!fromRestore && vibOn)   vibrate()
 
             if (autoStart) {
                 startTimer()
