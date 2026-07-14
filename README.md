@@ -6,6 +6,14 @@
   <img src="app/src/main/res/mipmap-xxhdpi/ic_launcher.png" width="96" alt="Pomotimer Icon"/>
 </p>
 
+<p align="center">
+  <a href="https://github.com/warasugitewara/Pomotimer/releases"><img src="https://img.shields.io/github/v/release/warasugitewara/Pomotimer?label=Release&color=E53935" alt="Release"/></a>
+  <img src="https://img.shields.io/badge/Kotlin-2.2.0-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin"/>
+  <img src="https://img.shields.io/badge/Jetpack%20Compose-BOM%202026.03-4285F4?logo=jetpackcompose&logoColor=white" alt="Jetpack Compose"/>
+  <img src="https://img.shields.io/badge/minSdk-24-3DDC84?logo=android&logoColor=white" alt="minSdk 24"/>
+  <img src="https://img.shields.io/badge/targetSdk-36-3DDC84?logo=android&logoColor=white" alt="targetSdk 36"/>
+</p>
+
 ---
 
 ## 📱 機能一覧
@@ -77,18 +85,22 @@
 
 ## 🏗 技術スタック
 
+100% Kotlin・宣言的 UI・単方向データフロー（UDF）で構成しています。依存バージョンは [Version Catalog](gradle/libs.versions.toml)（`libs.versions.toml`）で一元管理しています。
+
 | カテゴリ | 使用技術 |
 |----------|----------|
-| UI | Jetpack Compose + Material3 |
-| アーキテクチャ | MVVM (ViewModel + StateFlow) |
-| バックグラウンド | LifecycleService (フォアグラウンドサービス) |
-| データベース | Room 2.8.4 |
-| 設定の永続化 | DataStore Preferences 1.2.1 |
+| 言語 | Kotlin 2.2.0（K2 コンパイラ） + Kotlin Coroutines / Flow |
+| UI | Jetpack Compose（BOM 2026.03.01）+ Material 3 + Material Icons Extended |
+| アーキテクチャ | MVVM + 単方向データフロー（ViewModel + `StateFlow` + `collectAsStateWithLifecycle`） |
+| バックグラウンド | `LifecycleService` によるフォアグラウンドサービス（`specialUse` タイプ、タイマー状態は DataStore に永続化しプロセス再生成時に復元） |
+| データベース | Room 2.8.4（KSP 2.2.0-2.0.2 によるコンパイル時コード生成） |
+| 設定・状態の永続化 | DataStore Preferences 1.2.1 |
 | 画面遷移 | Navigation Compose 2.9.7 |
 | グラフ | Vico 3.2.2 (compose + compose-m3) |
-| フォント | JetBrains Mono (OFL) |
 | ホーム画面ウィジェット | Jetpack Glance 1.1.1 |
-| ビルドツール | Gradle 9.4.1 + AGP 8.13.2 + Kotlin 2.2.0 |
+| エッジツーエッジ表示 | Activity Compose 1.13.0（`enableEdgeToEdge`） |
+| フォント | JetBrains Mono (OFL) |
+| ビルドツール | Gradle 9.4.1 + AGP 8.13.2 + Version Catalog |
 | 最小 SDK | Android 7.0 (API 24) |
 | ターゲット SDK | Android 16 (API 36) |
 
@@ -101,12 +113,12 @@
 | バージョン | 主な変更 |
 |-----------|----------|
 | v1.6.4 | **別アプリや別画面を見ている間にタイマーがリセットされる不具合を修正**（タイマー状態を永続化し、プロセス再生成時に自動復元。実行中に満了した場合もログ記録と次モード遷移を実施）・クイック設定の作業スライダーが進行中セッションをリセットしてしまう問題を修正・タスク名のプリセット登録＆ドロップダウン選択機能を追加 |
+| [v1.6.3](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.3) | Discord RPC 連携が平文HTTP通信をブロックされ接続できない不具合を修正（`usesCleartextTraffic`追加）。設定画面のBridge設定をIPアドレス/ポート/HTTPSの分離入力に変更し、接続先をわかりやすく表示 |
 | [v1.6.2](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.2) | **パッケージ名を `com.example.pomodoro` → `com.warasugi.pomotimer` に変更**（旧バージョンからの自動更新は不可。アンインストール後に再インストールが必要）・作業時間の上限を 60 分に調整 |
 | [v1.6.1](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.1) | ホーム画面ウィジェットからタイマーを開始すると残り時間が進まない不具合を修正 |
-| [v1.6.3](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.3) | Discord RPC 連携が平文HTTP通信をブロックされ接続できない不具合を修正（`usesCleartextTraffic`追加）。設定画面のBridge設定をIPアドレス/ポート/HTTPSの分離入力に変更し、接続先をわかりやすく表示 |
 | [v1.6.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.0) | Discord RPC 連携・ホーム画面ウィジェット・ポモドーロサイクル設定強化（自動開始・範囲拡張）・統計強化（期間別サマリ・最長集中時間・曜日別グラフ）・タスク名記録・クレジット画面の情報ハブ化 |
 | [v1.5.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.5.0) | タイマー画面 UI/UX 刷新（JetBrains Mono 表示・呼吸するリング・サイクルドット）・ログ画面に Vico グラフと累計サマリーを追加・アプリ内 DL → インストールでのアップデート対応 |
-| [v1.4.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.4.0) | Discord・btop・Catppuccin テーマ追加・起動時アップデート通知・著名を pomotimer.warasugi.com に統一・**APK 署名修正**（v1.3.1 以前から更新する場合はアンインストール後に再インストールが必要です） |
+| [v1.4.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.4.0) | Discord・btop・Catppuccin テーマ追加・起動時アップデート通知・署名を pomotimer.warasugi.com に統一・**APK 署名修正**（v1.3.1 以前から更新する場合はアンインストール後に再インストールが必要です） |
 | [v1.3.1](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.3.1) | ロック画面への通知表示・設定画面にクレジット追加 |
 | [v1.3.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.3.0) | Material3 UI/UX 最適化 |
 | [v1.2.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.2.0) | 長休憩・バイブ・6 テーマ＋カスタム・アラーム停止・作業ログ管理・ドット絵アイコン |
@@ -124,10 +136,17 @@ cd Pomotimer
 
 # デバッグ APK をビルド
 ./gradlew assembleDebug
+
+# リリース APK をビルド（署名設定は local.properties で指定）
+./gradlew assembleRelease
 ```
 
-ビルドには Android SDK (API 36) と JDK 17 以上が必要です。
-※ 私は開発にGraalVM25をしようしているのでそちらが一番安定するかもしれません
+必要環境:
+
+- Android SDK Platform 36（Android 16）
+- JDK 17 以上（Gradle 9.4.1 / AGP 8.13.2 の要件）
+
+※ 私は開発に GraalVM 25 を使用しているのでそちらが一番安定するかもしれません
 
 ---
 
@@ -139,11 +158,11 @@ app/src/main/java/com/example/pomodoro/
 │   ├── AppDatabase.kt        # Room データベース
 │   ├── WorkLog.kt            # 作業ログエンティティ
 │   ├── WorkLogDao.kt         # DAO（日付別クエリ・削除）
-│   └── SettingsRepository.kt # DataStore ラッパー
+│   └── SettingsRepository.kt # DataStore ラッパー（設定・タスク名プリセット・タイマー状態スナップショット）
 ├── model/
 │   └── TimerState.kt         # タイマー状態データクラス
 ├── service/
-│   └── TimerService.kt       # フォアグラウンドサービス（タイマー・通知・音声・振動）
+│   └── TimerService.kt       # フォアグラウンドサービス（タイマー・通知・音声・振動・状態の永続化/復元）
 ├── ui/
 │   ├── theme/
 │   │   ├── AppTheme.kt       # 10 テーマ定義 + PomotimerTheme
