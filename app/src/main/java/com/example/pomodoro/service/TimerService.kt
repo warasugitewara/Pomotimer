@@ -177,9 +177,13 @@ class TimerService : LifecycleService() {
     // ────────────── Timer control ──────────────
 
     private fun startTimer() {
-        if (_uiState.value.isRunning) return
+        val s = _uiState.value
+        if (s.isRunning) return
         sessionStartTime = System.currentTimeMillis()
-        sessionStartRemaining = _uiState.value.remainingSeconds
+        // 一時停止からの再開では開始点を動かさない（動かすと一時停止前の実績が消える）
+        if (s.remainingSeconds == s.totalSeconds) {
+            sessionStartRemaining = s.remainingSeconds
+        }
         _uiState.update { it.copy(isRunning = true) }
         persistState()
         reportRpc(force = true)
