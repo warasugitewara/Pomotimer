@@ -16,6 +16,25 @@
 
 ---
 
+## 📸 スクリーンショット
+
+<table align="center">
+  <tr>
+    <td align="center" width="25%"><img src="docs/screenshots/timer_purple.png" width="100%" alt="タイマー画面（Catppuccinテーマ）"/><br/><sub><b>タイマー（Catppuccin）</b></sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/timer_red.png" width="100%" alt="タイマー画面（ライト×赤テーマ）"/><br/><sub><b>タイマー（ライト×赤）</b></sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/task_preset.png" width="100%" alt="タスク名プリセット選択"/><br/><sub><b>タスクプリセット選択</b></sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/worklog.png" width="100%" alt="作業ログ画面（サマリー＋グラフ）"/><br/><sub><b>作業ログ</b></sub></td>
+  </tr>
+  <tr>
+    <td align="center" width="25%"><img src="docs/screenshots/settings_theme.png" width="100%" alt="カラーテーマ選択"/><br/><sub><b>テーマ選択</b></sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/settings_notification.png" width="100%" alt="通知・サイクル自動開始設定"/><br/><sub><b>通知・サイクル設定</b></sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/settings_discord_rpc.png" width="100%" alt="Discord RPC連携設定"/><br/><sub><b>Discord RPC連携</b></sub></td>
+    <td width="25%"></td>
+  </tr>
+</table>
+
+---
+
 ## 📱 機能一覧
 
 ### ⏱ タイマー
