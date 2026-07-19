@@ -7,11 +7,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/warasugitewara/Pomotimer/releases"><img src="https://img.shields.io/github/v/release/warasugitewara/Pomotimer?label=Release&color=E53935" alt="Release"/></a>
-  <img src="https://img.shields.io/badge/Kotlin-2.2.0-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin"/>
-  <img src="https://img.shields.io/badge/Jetpack%20Compose-BOM%202026.03-4285F4?logo=jetpackcompose&logoColor=white" alt="Jetpack Compose"/>
-  <img src="https://img.shields.io/badge/minSdk-24-3DDC84?logo=android&logoColor=white" alt="minSdk 24"/>
-  <img src="https://img.shields.io/badge/targetSdk-36-3DDC84?logo=android&logoColor=white" alt="targetSdk 36"/>
+  <a href="https://github.com/warasugitewara/Pomotimer/releases"><img src="https://img.shields.io/github/v/release/warasugitewara/Pomotimer?label=Release&color=E53935&cacheSeconds=3600" alt="Release"/></a>
+  <img src="https://img.shields.io/badge/Kotlin-2.2.0-7F52FF?logo=kotlin&logoColor=white&cacheSeconds=3600" alt="Kotlin"/>
+  <img src="https://img.shields.io/badge/Jetpack%20Compose-BOM%202026.03-4285F4?logo=jetpackcompose&logoColor=white&cacheSeconds=3600" alt="Jetpack Compose"/>
+  <img src="https://img.shields.io/badge/minSdk-24-3DDC84?logo=android&logoColor=white&cacheSeconds=3600" alt="minSdk 24"/>
+  <img src="https://img.shields.io/badge/targetSdk-36-3DDC84?logo=android&logoColor=white&cacheSeconds=3600" alt="targetSdk 36"/>
 </p>
 
 ---
@@ -20,16 +20,16 @@
 
 <table align="center">
   <tr>
+    <td align="center" width="25%"><img src="docs/screenshots/timer_light.png" width="100%" alt="タイマー画面（ライトテーマ・デフォルト）"/><br/><sub><b>タイマー（ライト・デフォルト）</b></sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/timer_monokai.png" width="100%" alt="タイマー画面（Monokaiテーマ）"/><br/><sub><b>タイマー（Monokai）</b></sub></td>
     <td align="center" width="25%"><img src="docs/screenshots/timer_purple.png" width="100%" alt="タイマー画面（Catppuccinテーマ）"/><br/><sub><b>タイマー（Catppuccin）</b></sub></td>
-    <td align="center" width="25%"><img src="docs/screenshots/timer_red.png" width="100%" alt="タイマー画面（ライト×赤テーマ）"/><br/><sub><b>タイマー（ライト×赤）</b></sub></td>
     <td align="center" width="25%"><img src="docs/screenshots/task_preset.png" width="100%" alt="タスク名プリセット選択"/><br/><sub><b>タスクプリセット選択</b></sub></td>
-    <td align="center" width="25%"><img src="docs/screenshots/worklog.png" width="100%" alt="作業ログ画面（サマリー＋グラフ）"/><br/><sub><b>作業ログ</b></sub></td>
   </tr>
   <tr>
+    <td align="center" width="25%"><img src="docs/screenshots/worklog.png" width="100%" alt="作業ログ画面（サマリー＋グラフ）"/><br/><sub><b>作業ログ</b></sub></td>
     <td align="center" width="25%"><img src="docs/screenshots/settings_theme.png" width="100%" alt="カラーテーマ選択"/><br/><sub><b>テーマ選択</b></sub></td>
     <td align="center" width="25%"><img src="docs/screenshots/settings_notification.png" width="100%" alt="通知・サイクル自動開始設定"/><br/><sub><b>通知・サイクル設定</b></sub></td>
     <td align="center" width="25%"><img src="docs/screenshots/settings_discord_rpc.png" width="100%" alt="Discord RPC連携設定"/><br/><sub><b>Discord RPC連携</b></sub></td>
-    <td width="25%"></td>
   </tr>
 </table>
 
