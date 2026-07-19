@@ -24,6 +24,7 @@ import androidx.glance.layout.padding
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import com.example.pomodoro.data.SettingsRepository
 import com.example.pomodoro.model.TimerState
 import com.example.pomodoro.service.TimerService
 
@@ -41,12 +42,22 @@ class PomotimerWidget : GlanceAppWidget() {
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val state = TimerService.uiState.value
+        val live = TimerService.uiState.value
+        // プロセス死亡直後はサービスが未起動で uiState が既定値のままのため、
+        // DataStore に保存されたスナップショットから復元して「25:00」誤表示を防ぐ
+        val state = if (live != TimerState()) live else restoreStateFromSnapshot(context)
         provideContent {
             GlanceTheme {
                 WidgetContent(state)
             }
         }
+    }
+
+    private suspend fun restoreStateFromSnapshot(context: Context): TimerState {
+        val snap = SettingsRepository(context).readTimerSnapshot() ?: return TimerState()
+        if (!snap.state.isRunning) return snap.state
+        val remaining = ((snap.endAtMillis - System.currentTimeMillis()) / 1000).coerceAtLeast(0L)
+        return snap.state.copy(isRunning = false, remainingSeconds = remaining)
     }
 }
 

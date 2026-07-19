@@ -1,5 +1,6 @@
 package com.example.pomodoro.service
 
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -49,6 +50,7 @@ class TimerService : LifecycleService() {
         const val ACTION_SET_LONG_BREAK     = "com.example.pomodoro.SET_LONG_BREAK"
         const val ACTION_SET_LB_INTERVAL    = "com.example.pomodoro.SET_LB_INTERVAL"
         const val ACTION_SET_TASK_NAME      = "com.example.pomodoro.SET_TASK_NAME"
+        const val ACTION_ALARM_FIRED        = "com.example.pomodoro.ALARM_FIRED"
 
         const val CHANNEL_TIMER  = "timer_progress"
         const val CHANNEL_ALERT  = "timer_alert"
@@ -79,6 +81,7 @@ class TimerService : LifecycleService() {
     }
 
     private lateinit var notifManager: NotificationManager
+    private lateinit var alarmManager: AlarmManager
     private lateinit var settings: SettingsRepository
     private lateinit var db: AppDatabase
     private var timerJob: Job? = null
@@ -90,6 +93,7 @@ class TimerService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
         notifManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
         settings = SettingsRepository(this)
         db = AppDatabase.getInstance(this)
         createNotificationChannels()
@@ -158,6 +162,7 @@ class TimerService : LifecycleService() {
             ACTION_STOP            -> stopAll()
             ACTION_RESET           -> resetTimer()
             ACTION_STOP_ALARM      -> stopAlarm()
+            ACTION_ALARM_FIRED     -> handleFinishAlarm()
             ACTION_SET_WORK        -> setWorkDuration(intent.getIntExtra("minutes", 25))
             ACTION_SET_BREAK       -> setBreakDuration(intent.getIntExtra("minutes", 5))
             ACTION_SET_LONG_BREAK  -> { _uiState.update { it.copy(preferredLongBreakDurationMinutes = intent.getIntExtra("minutes", 15)) }; persistState() }
@@ -187,6 +192,7 @@ class TimerService : LifecycleService() {
         _uiState.update { it.copy(isRunning = true) }
         persistState()
         reportRpc(force = true)
+        scheduleFinishAlarm(s.remainingSeconds)
         lastTickTime = System.currentTimeMillis()
         try {
             startForeground(NOTIF_ID_TIMER, buildTimerNotification())
@@ -215,6 +221,7 @@ class TimerService : LifecycleService() {
 
     private fun pauseTimer() {
         timerJob?.cancel()
+        cancelFinishAlarm()
         _uiState.update { it.copy(isRunning = false) }
         persistState()
         reportRpc(force = true)
@@ -223,17 +230,58 @@ class TimerService : LifecycleService() {
 
     private fun resetTimer() {
         timerJob?.cancel()
+        cancelFinishAlarm()
         stopAlarm()
+        buildInterruptedWorkLogOrNull()?.let { log -> lifecycleScope.launch { db.workLogDao().insert(log) } }
         _uiState.update { s -> s.copy(remainingSeconds = s.totalSeconds, isRunning = false) }
         persistState()
         reportRpc(force = true)
         notifManager.notify(NOTIF_ID_TIMER, buildTimerNotification())
     }
 
+    /** Doze中でも確実にセッション終了を検知できるよう、満了予定時刻ちょうどに自分自身を起こす。 */
+    private fun scheduleFinishAlarm(remainingSeconds: Long) {
+        val triggerAt = System.currentTimeMillis() + remainingSeconds * 1000L
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, actionIntent(ACTION_ALARM_FIRED))
+    }
+
+    private fun cancelFinishAlarm() {
+        alarmManager.cancel(actionIntent(ACTION_ALARM_FIRED))
+    }
+
+    /** [ACTION_ALARM_FIRED] のハンドラ。tick ループが Doze で止まっていた場合のフォールバック。 */
+    private fun handleFinishAlarm() {
+        // tick ループが既に処理済み（isRunning=false）なら二重処理しない
+        if (!_uiState.value.isRunning) return
+        timerJob?.cancel()
+        _uiState.update { it.copy(remainingSeconds = 0L) }
+        onTimerFinished()
+    }
+
+    /** 中断（リセット/停止）時点までの経過を「未完了」セッションとして記録する。進捗ゼロなら記録しない。 */
+    private fun buildInterruptedWorkLogOrNull(): WorkLog? {
+        val state = _uiState.value
+        val actual = state.totalSeconds - state.remainingSeconds
+        if (actual <= 0L) return null
+        return WorkLog(
+            sessionType    = if (state.isWorkMode) "WORK" else if (state.isLongBreak) "LONG_BREAK" else "BREAK",
+            plannedSeconds = state.totalSeconds,
+            actualSeconds  = actual,
+            completed      = false,
+            lapNumber      = state.currentLap,
+            taskName       = if (state.isWorkMode) state.currentTaskName else null
+        )
+    }
+
     /** Discord RPCブリッジへ現在状態を通知する（無効時/未設定時は内部で何もしない）。 */
     private fun reportRpc(force: Boolean = false) {
         DiscordRpcReporter.notifyState(settings, _uiState.value, force)
-        lifecycleScope.launch { PomotimerWidget().updateAll(this@TimerService) }
+        // ウィジェットの updateAll は毎秒呼ぶと再コンポーズ+Binder IPCのコストが大きいため、
+        // 状態の節目（force）か1分ごとの目盛りだけに絞って更新する
+        val s = _uiState.value
+        if (force || s.remainingSeconds % 60 == 0L) {
+            lifecycleScope.launch { PomotimerWidget().updateAll(this@TimerService) }
+        }
     }
 
     private fun setWorkDuration(minutes: Int) {
@@ -257,11 +305,17 @@ class TimerService : LifecycleService() {
 
     private fun stopAll() {
         timerJob?.cancel()
+        cancelFinishAlarm()
         stopAlarm()
+        val interruptedLog = buildInterruptedWorkLogOrNull()
         DiscordRpcReporter.notifyClear(settings)
         _uiState.value = TimerState()
-        // lifecycleScope は stopSelf で終了するため、消し漏れがないよう同期的に消す
-        runBlocking { settings.clearTimerSnapshot() }
+        // lifecycleScope は stopSelf で終了するため、消し漏れ・描画漏れがないよう同期的に処理する
+        runBlocking {
+            interruptedLog?.let { db.workLogDao().insert(it) }
+            settings.clearTimerSnapshot()
+            PomotimerWidget().updateAll(this@TimerService)
+        }
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -278,6 +332,7 @@ class TimerService : LifecycleService() {
 
     /** [fromRestore] はプロセス停止中に満了していたセッションの復元処理。音・振動・自動開始は行わない。 */
     private fun onTimerFinished(fromRestore: Boolean = false) {
+        cancelFinishAlarm()
         val state = _uiState.value
         val wasWork = state.isWorkMode
         val actual  = sessionStartRemaining - state.remainingSeconds
