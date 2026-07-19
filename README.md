@@ -7,11 +7,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/warasugitewara/Pomotimer/releases"><img src="https://img.shields.io/github/v/release/warasugitewara/Pomotimer?label=Release&color=E53935&cacheSeconds=3600" alt="Release"/></a>
-  <img src="https://img.shields.io/badge/Kotlin-2.2.0-7F52FF?logo=kotlin&logoColor=white&cacheSeconds=3600" alt="Kotlin"/>
-  <img src="https://img.shields.io/badge/Jetpack%20Compose-BOM%202026.03-4285F4?logo=jetpackcompose&logoColor=white&cacheSeconds=3600" alt="Jetpack Compose"/>
-  <img src="https://img.shields.io/badge/minSdk-24-3DDC84?logo=android&logoColor=white&cacheSeconds=3600" alt="minSdk 24"/>
-  <img src="https://img.shields.io/badge/targetSdk-36-3DDC84?logo=android&logoColor=white&cacheSeconds=3600" alt="targetSdk 36"/>
+  <a href="https://github.com/warasugitewara/Pomotimer/releases"><img src="https://img.shields.io/badge/Release-v1.7.0-E53935" alt="Release"/></a>
+  <img src="https://img.shields.io/badge/Kotlin-2.2.0-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin"/>
+  <img src="https://img.shields.io/badge/Jetpack%20Compose-BOM%202026.03-4285F4?logo=jetpackcompose&logoColor=white" alt="Jetpack Compose"/>
+  <img src="https://img.shields.io/badge/minSdk-24-3DDC84?logo=android&logoColor=white" alt="minSdk 24"/>
+  <img src="https://img.shields.io/badge/targetSdk-36-3DDC84?logo=android&logoColor=white" alt="targetSdk 36"/>
 </p>
 
 ---
