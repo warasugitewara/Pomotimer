@@ -133,6 +133,7 @@
 
 | バージョン | 主な変更 |
 |-----------|----------|
+| [v1.7.1](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.7.1) | Doze中でもAlarmManagerでセッション終了を確実に検知するよう修正・ウィジェットの再描画を毎秒から節目/1分間隔に抑制・リセットや停止で中断したセッションを未完了として記録・停止時とプロセス再生成直後のウィジェット表示不整合を修正 |
 | [v1.7.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.7.0) | **一時停止を挟むと作業実績時間が過少計上される不具合を修正**（一時停止からの再開ではセッション開始点を動かさないよう修正）・別アプリや別画面を見ている間にタイマーがリセットされる不具合を修正（タイマー状態を永続化し、プロセス再生成時に自動復元）・クイック設定の作業スライダーが進行中セッションをリセットしてしまう問題を修正・タスク名のプリセット登録＆ドロップダウン選択機能を追加・Discord RPC接続テストの3値化（成功/認証失敗/到達不能）とホスト入力のサニタイズ・一時停止中のキープアライブ送信を追加 |
 | [v1.6.3](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.3) | Discord RPC 連携が平文HTTP通信をブロックされ接続できない不具合を修正（`usesCleartextTraffic`追加）。設定画面のBridge設定をIPアドレス/ポート/HTTPSの分離入力に変更し、接続先をわかりやすく表示 |
 | [v1.6.2](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.2) | **パッケージ名を `com.example.pomodoro` → `com.warasugi.pomotimer` に変更**（旧バージョンからの自動更新は不可。アンインストール後に再インストールが必要）・作業時間の上限を 60 分に調整 |
