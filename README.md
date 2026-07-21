@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/warasugitewara/Pomotimer/releases"><img src="https://img.shields.io/badge/Release-v1.7.1-E53935" alt="Release"/></a>
+  <a href="https://github.com/warasugitewara/Pomotimer/releases"><img src="https://img.shields.io/badge/Release-v1.7.2-E53935" alt="Release"/></a>
   <img src="https://img.shields.io/badge/Kotlin-2.2.0-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin"/>
   <img src="https://img.shields.io/badge/Jetpack%20Compose-BOM%202026.03-4285F4?logo=jetpackcompose&logoColor=white" alt="Jetpack Compose"/>
   <img src="https://img.shields.io/badge/minSdk-24-3DDC84?logo=android&logoColor=white" alt="minSdk 24"/>
@@ -137,6 +137,7 @@
 
 | バージョン | 主な変更 |
 |-----------|----------|
+| v1.7.2 | **作業ログのグラフで日別/曜日別・7日/30日を切り替えるとアプリがクラッシュする不具合を修正**（棒の本数が変わる際に Vico が旧・新モデルを差分アニメーションしてサイズ不一致で落ちていたため、本数変化時はグラフを作り直すよう変更） |
 | [v1.7.1](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.7.1) | Doze中でもAlarmManagerでセッション終了を確実に検知するよう修正・ウィジェットの再描画を毎秒から節目/1分間隔に抑制・リセットや停止で中断したセッションを未完了として記録・停止時とプロセス再生成直後のウィジェット表示不整合を修正 |
 | [v1.7.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.7.0) | **一時停止を挟むと作業実績時間が過少計上される不具合を修正**（一時停止からの再開ではセッション開始点を動かさないよう修正）・別アプリや別画面を見ている間にタイマーがリセットされる不具合を修正（タイマー状態を永続化し、プロセス再生成時に自動復元）・クイック設定の作業スライダーが進行中セッションをリセットしてしまう問題を修正・タスク名のプリセット登録＆ドロップダウン選択機能を追加・Discord RPC接続テストの3値化（成功/認証失敗/到達不能）とホスト入力のサニタイズ・一時停止中のキープアライブ送信を追加 |
 | [v1.6.3](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.6.3) | Discord RPC 連携が平文HTTP通信をブロックされ接続できない不具合を修正（`usesCleartextTraffic`追加）。設定画面のBridge設定をIPアドレス/ポート/HTTPSの分離入力に変更し、接続先をわかりやすく表示 |
