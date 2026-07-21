@@ -272,12 +272,12 @@ private fun OverviewSection(
                     }
                 }
                 Spacer(Modifier.height(4.dp))
-                if (dailyStats.all { it.pomodoros == 0 }) {
+                val chartStats = if (groupByWeekday) aggregateByWeekday(dailyStats) else dailyStats
+                if (chartStats.all { it.pomodoros == 0 }) {
                     Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
                         Text("まだデータがありません", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
-                    val chartStats = if (groupByWeekday) aggregateByWeekday(dailyStats) else dailyStats
                     PomodoroBarChart(stats = chartStats)
                 }
             }

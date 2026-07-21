@@ -2,7 +2,6 @@ package com.example.pomodoro.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,39 +29,37 @@ import java.util.Locale
 fun PomodoroBarChart(stats: List<DailyStat>, modifier: Modifier = Modifier) {
     if (stats.isEmpty()) return
 
-    // 7↔30日・日別↔曜日別を切り替えると棒の本数（データ点数）が変わる。
-    // モデルプロデューサを使い回したままだと、Vico が旧モデルと新モデルを
-    // 差分アニメーションしようとして点数不一致でクラッシュする。点数が変わる
-    // ときは key でチャートとモデルプロデューサを作り直し、差分アニメーションを
-    // 回避する（点数が同じ DB 更新時は従来どおりアニメーションする）。
-    key(stats.size) {
-        val modelProducer = remember { CartesianChartModelProducer() }
+    val modelProducer = remember { CartesianChartModelProducer() }
 
-        val labels = remember(stats) { stats.map { shortDate(it.date) } }
+    val labels = remember(stats) { stats.map { shortDate(it.date) } }
 
-        LaunchedEffect(stats) {
-            modelProducer.runTransaction {
-                columnSeries { series(stats.map { it.pomodoros }) }
-            }
+    LaunchedEffect(stats) {
+        modelProducer.runTransaction {
+            columnSeries { series(stats.map { it.pomodoros }) }
         }
+    }
 
-        val bottomFormatter = remember(labels) {
-            CartesianValueFormatter { _, value, _ ->
-                labels.getOrNull(value.toInt()).orEmpty()
-            }
+    val bottomFormatter = remember(labels) {
+        CartesianValueFormatter { _, value, _ ->
+            labels.getOrNull(value.toInt()).orEmpty()
         }
+    }
 
-        ProvideVicoTheme(rememberM3VicoTheme()) {
-            CartesianChartHost(
-                chart = rememberCartesianChart(
-                    rememberColumnCartesianLayer(),
-                    startAxis = VerticalAxis.rememberStart(),
-                    bottomAxis = HorizontalAxis.rememberBottom(valueFormatter = bottomFormatter),
-                ),
-                modelProducer = modelProducer,
-                modifier = modifier.fillMaxWidth().height(200.dp),
-            )
-        }
+    ProvideVicoTheme(rememberM3VicoTheme()) {
+        CartesianChartHost(
+            chart = rememberCartesianChart(
+                rememberColumnCartesianLayer(),
+                startAxis = VerticalAxis.rememberStart(),
+                bottomAxis = HorizontalAxis.rememberBottom(valueFormatter = bottomFormatter),
+            ),
+            modelProducer = modelProducer,
+            // 7↔30日・日別↔曜日別を切り替えると棒の本数（データ点数）が変わる。
+            // 既定の差分アニメーションは旧モデルと新モデルを補間するため、点数や
+            // x ドメインが変わるとその補間中にクラッシュしていた。animationSpec=null で
+            // 補間を無効化し、更新時は常に最終モデルへ直接切り替える（初回表示と同じ経路）。
+            animationSpec = null,
+            modifier = modifier.fillMaxWidth().height(200.dp),
+        )
     }
 }
 
