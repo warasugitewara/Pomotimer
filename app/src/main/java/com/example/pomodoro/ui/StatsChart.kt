@@ -16,10 +16,13 @@ import com.patrykandpatrick.vico.compose.cartesian.data.columnSeries
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.ProvideVicoTheme
+import com.patrykandpatrick.vico.compose.common.data.ExtraStore
 import com.patrykandpatrick.vico.compose.m3.common.rememberM3VicoTheme
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
 import java.text.SimpleDateFormat
 import java.util.Locale
+
+private val LabelListKey = ExtraStore.Key<List<String>>()
 
 /**
  * 日別ポモドーロ数の縦棒グラフ。色は compose-m3 テーマ（= 現在のMaterial3カラー）に追従する。
@@ -31,17 +34,21 @@ fun PomodoroBarChart(stats: List<DailyStat>, modifier: Modifier = Modifier) {
 
     val modelProducer = remember { CartesianChartModelProducer() }
 
-    val labels = remember(stats) { stats.map { shortDate(it.date) } }
-
     LaunchedEffect(stats) {
+        val labels = stats.map { shortDate(it.date) }
         modelProducer.runTransaction {
             columnSeries { series(stats.map { it.pomodoros }) }
+            // 横軸ラベルは日別/曜日別・7日/30日でデータ点数が変わるうえログ削除で
+            // 疎な日付集計の行数も変わる。remoteな Compose state で渡すとモデル更新
+            // （非同期・新旧並行処理されうる）とラベルが食い違いクラッシュしていたため、
+            // 同一トランザクションの extras に載せてモデルと必ず同期させる。
+            extras { it[LabelListKey] = labels }
         }
     }
 
-    val bottomFormatter = remember(labels) {
-        CartesianValueFormatter { _, value, _ ->
-            labels.getOrNull(value.toInt()).orEmpty()
+    val bottomFormatter = remember {
+        CartesianValueFormatter { context, value, _ ->
+            context.model.extraStore.getOrNull(LabelListKey)?.getOrNull(value.toInt()).orEmpty()
         }
     }
 

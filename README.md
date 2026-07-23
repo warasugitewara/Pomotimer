@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/warasugitewara/Pomotimer/releases"><img src="https://img.shields.io/badge/Release-v1.8.0-E53935" alt="Release"/></a>
+  <a href="https://github.com/warasugitewara/Pomotimer/releases"><img src="https://img.shields.io/badge/Release-v1.8.1-E53935" alt="Release"/></a>
   <img src="https://img.shields.io/badge/Kotlin-2.2.0-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin"/>
   <img src="https://img.shields.io/badge/Jetpack%20Compose-BOM%202026.03-4285F4?logo=jetpackcompose&logoColor=white" alt="Jetpack Compose"/>
   <img src="https://img.shields.io/badge/minSdk-24-3DDC84?logo=android&logoColor=white" alt="minSdk 24"/>
@@ -138,7 +138,8 @@
 
 | バージョン | 主な変更 |
 |-----------|----------|
-| v1.8.0 | **タスク別統計を追加**（作業ログ画面に、タスク名ごとの累計ポモドーロ数・作業時間を多い順で表示。ポモ数に比例した横バー付き。既存の作業ログから集計するためデータ移行は不要） |
+| v1.8.1 | **作業ログのグラフ切り替え・ログ削除で発生していたクラッシュを再修正**（横軸ラベルをVicoの`ExtraStore`外で保持していたため、グラフのモデル更新（範囲/グルーピング切替、ログ削除による日付集計の増減）と非同期に食い違いクラッシュしていた問題を、ラベルをモデルと同一トランザクションで同期するよう修正） |
+| [v1.8.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.8.0) | **タスク別統計を追加**（作業ログ画面に、タスク名ごとの累計ポモドーロ数・作業時間を多い順で表示。ポモ数に比例した横バー付き。既存の作業ログから集計するためデータ移行は不要） |
 | v1.7.2 | **作業ログのグラフで日別/曜日別・7日/30日を切り替えるとアプリがクラッシュする不具合を修正**（Vico の差分アニメーションが旧・新モデルの補間中に落ちていたため、グラフ更新時の差分アニメーションを無効化して常に最終状態へ直接切り替えるよう変更） |
 | [v1.7.1](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.7.1) | Doze中でもAlarmManagerでセッション終了を確実に検知するよう修正・ウィジェットの再描画を毎秒から節目/1分間隔に抑制・リセットや停止で中断したセッションを未完了として記録・停止時とプロセス再生成直後のウィジェット表示不整合を修正 |
 | [v1.7.0](https://github.com/warasugitewara/Pomotimer/releases/tag/v1.7.0) | **一時停止を挟むと作業実績時間が過少計上される不具合を修正**（一時停止からの再開ではセッション開始点を動かさないよう修正）・別アプリや別画面を見ている間にタイマーがリセットされる不具合を修正（タイマー状態を永続化し、プロセス再生成時に自動復元）・クイック設定の作業スライダーが進行中セッションをリセットしてしまう問題を修正・タスク名のプリセット登録＆ドロップダウン選択機能を追加・Discord RPC接続テストの3値化（成功/認証失敗/到達不能）とホスト入力のサニタイズ・一時停止中のキープアライブ送信を追加 |
