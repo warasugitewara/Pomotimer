@@ -2,6 +2,7 @@ package com.example.pomodoro.ui
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,11 +15,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pomodoro.data.DailyStat
+import com.example.pomodoro.data.TaskStat
 import com.example.pomodoro.data.WorkLog
 import com.example.pomodoro.ui.theme.JetBrainsMono
 import java.text.SimpleDateFormat
@@ -37,6 +41,7 @@ fun WorkLogScreen(
     statsRangeDays: Int,
     longestFocusSeconds: Long,
     statsLast30Days: List<DailyStat>,
+    taskStats: List<TaskStat>,
     onSetStatsRange: (Int) -> Unit,
     onSelectDate: (String) -> Unit,
     onDeleteLog: (Long) -> Unit,
@@ -131,6 +136,7 @@ fun WorkLogScreen(
                     statsRangeDays = statsRangeDays,
                     longestFocusSeconds = longestFocusSeconds,
                     statsLast30Days = statsLast30Days,
+                    taskStats = taskStats,
                     onSetStatsRange = onSetStatsRange
                 )
             }
@@ -198,6 +204,7 @@ private fun OverviewSection(
     statsRangeDays: Int,
     longestFocusSeconds: Long,
     statsLast30Days: List<DailyStat>,
+    taskStats: List<TaskStat>,
     onSetStatsRange: (Int) -> Unit
 ) {
     var groupByWeekday by remember { mutableStateOf(false) }
@@ -282,7 +289,84 @@ private fun OverviewSection(
                 }
             }
         }
+
+        // タスク別内訳（タスク名付きのログがある場合のみ）
+        if (taskStats.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            TaskBreakdownCard(taskStats = taskStats)
+        }
     }
+}
+
+/**
+ * タスクごとの累計ポモドーロ数・作業時間をランキング表示する。
+ * ポモ数に比例した横バーで相対量が一目で分かるようにする。上位のみ表示。
+ */
+@Composable
+private fun TaskBreakdownCard(taskStats: List<TaskStat>) {
+    val top = remember(taskStats) { taskStats.take(6) }
+    val maxPomos = remember(top) { top.maxOfOrNull { it.pomodoros }?.coerceAtLeast(1) ?: 1 }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.WorkOutline, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(8.dp))
+                Text("タスク別", style = MaterialTheme.typography.titleSmall)
+            }
+            Spacer(Modifier.height(8.dp))
+            top.forEach { stat ->
+                TaskStatRow(stat = stat, maxPomos = maxPomos)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TaskStatRow(stat: TaskStat, maxPomos: Int) {
+    val frac = (stat.pomodoros.toFloat() / maxPomos).coerceIn(0f, 1f)
+    val color = MaterialTheme.colorScheme.primary
+    Column(Modifier.padding(vertical = 6.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                stat.taskName,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).padding(end = 8.dp)
+            )
+            Text(
+                "${stat.pomodoros}🍅  ${formatWorkDuration(stat.workSeconds)}",
+                fontFamily = JetBrainsMono,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Box(
+            Modifier.fillMaxWidth().height(6.dp).clip(CircleShape)
+                .background(color.copy(alpha = 0.12f))
+        ) {
+            Box(
+                Modifier.fillMaxWidth(frac).fillMaxHeight().clip(CircleShape).background(color)
+            )
+        }
+    }
+}
+
+/** 秒を "Xh Ym" / "Ym" 形式に整形する（0時間なら分のみ）。 */
+private fun formatWorkDuration(seconds: Long): String {
+    val totalMin = seconds / 60
+    val h = totalMin / 60
+    val m = totalMin % 60
+    return if (h > 0) "${h}h ${m}m" else "${m}m"
 }
 
 @Composable
