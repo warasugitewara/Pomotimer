@@ -80,6 +80,9 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
     val totalWorkSeconds = dao.getTotalWorkSeconds()
     val longestFocusSeconds = dao.getLongestFocusSeconds()
 
+    /** タスク別の累計集計（ポモ数の多い順）。 */
+    val taskStats = dao.getTaskStats()
+
     /** 今日（または昨日）から連続でポモドーロを記録した日数。 */
     val currentStreak = dao.getPomodoroDates().map { dates -> computeStreak(dates) }
 

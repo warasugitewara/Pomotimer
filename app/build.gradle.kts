@@ -23,8 +23,8 @@ android {
         applicationId = "com.warasugi.pomotimer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 14
-        versionName = "1.7.2"
+        versionCode = 15
+        versionName = "1.8.0"
     }
 
     signingConfigs {

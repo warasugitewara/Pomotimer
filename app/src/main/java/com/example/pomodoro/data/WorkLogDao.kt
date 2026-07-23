@@ -12,6 +12,13 @@ data class DailyStat(
     val workSeconds: Long
 )
 
+/** タスク別集計の1行。pomodoros は完了WORK数、workSeconds は中断含むWORK合計秒。 */
+data class TaskStat(
+    val taskName: String,
+    val pomodoros: Int,
+    val workSeconds: Long
+)
+
 @Dao
 interface WorkLogDao {
     @Insert
@@ -42,6 +49,20 @@ interface WorkLogDao {
     /** 最長の集中時間（単一セッションのWORK秒）。 */
     @Query("SELECT COALESCE(MAX(actualSeconds), 0) FROM work_logs WHERE sessionType = 'WORK'")
     fun getLongestFocusSeconds(): Flow<Long>
+
+    /** タスク別の累計集計（タスク名が付いたWORKのみ、ポモ数の多い順）。 */
+    @Query(
+        """
+        SELECT taskName AS taskName,
+               SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) AS pomodoros,
+               SUM(actualSeconds) AS workSeconds
+        FROM work_logs
+        WHERE sessionType = 'WORK' AND taskName IS NOT NULL AND taskName != ''
+        GROUP BY taskName
+        ORDER BY pomodoros DESC, workSeconds DESC
+        """
+    )
+    fun getTaskStats(): Flow<List<TaskStat>>
 
     /** ポモドーロを記録した日付一覧（新しい順）。ストリーク算出に用いる。 */
     @Query(
